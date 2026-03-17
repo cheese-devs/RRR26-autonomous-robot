@@ -1,0 +1,7 @@
+waypoints:
+- task: waypoint_1
+  x: -0.16
+  y: 0.032
+  orientation:
+    z: 0.01041
+    w: 0.99995
