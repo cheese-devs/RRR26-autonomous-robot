@@ -2,52 +2,53 @@ import serial
 import time
 
 def setup_wifi_module():
-    # ls /dev/ttyUSB*  # ตรวจสอบรายชื่อ ttyUSB ทั้งหมด
-    # ถ้ามองไม่เห็น /dev/ttyUSB0
-    # sudo apt remove brltty -y #ลบ Service ที่แย่งพอร์ตออก
-    # sudo modprobe ch341 #ถอดสาย USB ออกแล้วเสียบใหม่ หรือใช้คำสั่งบังคับให้ระบบโหลด Driver ใหม่
     port = '/dev/ttyUSB0' 
     baudrate = 115200
     
-    try:
-        ser = serial.Serial(port, baudrate, timeout=1)
-        print(f"Connected to {port} at {baudrate} baud")
-        
-        # รายการคำสั่งที่ต้องการส่ง
-        '''
-        commands = [
-            "wifi_mode:1",              # ตั้งเป็น Station Mode
-            "sta_ssid:robot-wifi-1",        # ชื่อ WiFi
-            "sta_pd:123456789-0",     # รหัสผ่าน
-            "ros2_ip:<REDACTED-IP>",    # IP เครื่องรับ (คอมพิวเตอร์)
-            "domain_id:20",		#domainid of ROS2
-            "wifi_ver"                 # ตรวจสอบเวอร์ชั่น
-        ]
-        '''
-        # เลือกเฉพาะ domainid
-        commands = [
-            "wifi_mode:1",
-            "domain_id:20", 	# กำหนด domainid of ROS2
-        ]
-        
-        for cmd in commands:
-            # ส่งคำสั่งพร้อมปิดท้ายด้วย \r\n (Enter) ตามมาตรฐาน AT Command
-            full_cmd = cmd + "\r\n"
-            ser.write(full_cmd.encode('utf-8'))
-            
-            print(f"Sending: {cmd}")
-            
-            # รออ่านผลลัพธ์จากโมดูล
-            time.sleep(1)
-            if ser.in_waiting > 0:
-                response = ser.read(ser.in_waiting).decode('utf-8', errors='ignore')
-                print(f"Response: {response.strip()}")
-                
-        ser.close()
-        print("Configuration Complete.")
+    # ANSI Escape Code สำหรับ Reset สีเป็นสีขาว/สีพื้นฐาน
+    RESET = "\033[0m"
+    
+    print(f"--- ROS2 WiFi Configuration Tool ---{RESET}")
+    print(f"Type 'q' at any time to exit the program.{RESET}")
+    print(f"-------------------------------------{RESET}")
 
-    except Exception as e:
-        print(f"Error: {e}")
+    while True:
+        # รับค่าและล้างสีทันที
+        user_input = input(f"\nEnter ROS2 Domain ID (or 'q' to quit): {RESET}").strip()
+
+        if user_input.lower() == 'q':
+            print(f"Exiting program. Goodbye!{RESET}")
+            break
+
+        if not user_input.isdigit():
+            print(f">> Error: Please enter a valid number or 'q' to quit.{RESET}")
+            continue
+
+        try:
+            ser = serial.Serial(port, baudrate, timeout=1)
+            
+            commands = [
+                "wifi_mode:1",
+                f"domain_id:{user_input}",
+            ]
+            
+            for cmd in commands:
+                full_cmd = cmd + "\r\n"
+                ser.write(full_cmd.encode('utf-8'))
+                print(f"Sending: {cmd}{RESET}")
+                
+                time.sleep(0.5)
+                if ser.in_waiting > 0:
+                    response = ser.read(ser.in_waiting).decode('utf-8', errors='ignore')
+                    # ล้างสีหลังจากแสดง Response
+                    print(f"Response: {response.strip()}{RESET}")
+            
+            ser.close()
+            print(f">> Successfully set Domain ID to: {user_input}{RESET}")
+
+        except Exception as e:
+            print(f">> Serial Error: {e}{RESET}")
+            print(f"Please check your connection and try again.{RESET}")
 
 if __name__ == "__main__":
     setup_wifi_module()
