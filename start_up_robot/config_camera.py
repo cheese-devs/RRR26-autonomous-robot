@@ -4,7 +4,6 @@
 # sudo modprobe ch341 #ถอดสาย USB ออกแล้วเสียบใหม่ หรือใช้คำสั่งบังคับให้ระบบโหลด Driver ใหม่
 import serial
 import time
-
 def setup_wifi_module():
     port = '/dev/ttyUSB0' 
     baudrate = 115200
@@ -32,6 +31,7 @@ def setup_wifi_module():
             ser = serial.Serial(port, baudrate, timeout=1)
             
             commands = [
+                "wifi_ver",
                 "wifi_mode:1",
                 f"domain_id:{user_input}",
             ]

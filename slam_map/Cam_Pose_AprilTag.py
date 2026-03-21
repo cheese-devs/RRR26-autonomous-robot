@@ -12,7 +12,6 @@ from sensor_msgs.msg import CompressedImage
 import cv2 as cv
 import numpy as np
 import time
-import pyzbar.pyzbar as pyzbar
 import apriltag # สำหรับ AprilTag
 
 class PoseDetector:
@@ -59,7 +58,6 @@ class MY_Picture(Node):
         self.pose_detector = PoseDetector()
         
         # ตัวแปรสถานะและข้อมูลล่าสุด (ค้างค่าไว้)
-        self.latest_qr_data = "Waiting for QR..."
         self.latest_at_id = "Waiting for Tag..."
         self.pose_status = "Not Found"
         
@@ -69,17 +67,9 @@ class MY_Picture(Node):
     def handleTopic(self, msg):
         # 1. รับภาพและปรับขนาด
         frame = self.bridge.compressed_imgmsg_to_cv2(msg)
-        #frame = cv.resize(frame, (640, 480))
         frame = cv.resize(frame, (640, 480))
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        
-       	# 2. ตรวจจับ QRCode (อัปเดตค่าล่าสุด)
-        barcodes = pyzbar.decode(gray)
-        for barcode in barcodes:
-            (x, y, w, h) = barcode.rect
-            cv.rectangle(frame, (x, y), (x + w, y + h), (0, 255, 0), 2)
-            self.latest_qr_data = barcode.data.decode("utf-8")
-	
+        	
         # 3. ตรวจจับ AprilTag (อัปเดตค่าล่าสุด)
         tags = self.at_detector.detect(gray)
         for tag in tags:
@@ -102,17 +92,13 @@ class MY_Picture(Node):
         cv.putText(right_panel, "VISION DASHBOARD", (20, 50), cv.FONT_HERSHEY_SIMPLEX, 0.9, (255, 255, 255), 2)
         cv.line(right_panel, (20, 70), (350, 70), (255, 255, 255), 1)
         
-        # แสดงผล QRCode ค้างไว้
-        cv.putText(right_panel, "Latest QRCode:", (20, 120), cv.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
-        cv.putText(right_panel, self.latest_qr_data, (20, 155), cv.FONT_HERSHEY_SIMPLEX, 0.8, (0, 255, 0), 2)
-        
         # แสดงผล AprilTag ค้างไว้
-        cv.putText(right_panel, "Latest AprilTag:", (20, 220), cv.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
-        cv.putText(right_panel, self.latest_at_id, (20, 255), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
+        cv.putText(right_panel, "Latest AprilTag:", (20, 120), cv.FONT_HERSHEY_SIMPLEX, 0.6, (200, 200, 200), 1)
+        cv.putText(right_panel, self.latest_at_id, (20, 155), cv.FONT_HERSHEY_SIMPLEX, 0.8, (255, 0, 255), 2)
         
         # แสดงสถานะ Pose
         color = (0, 255, 0) if detected else (0, 0, 255)
-        cv.putText(right_panel, f"Human Pose: {self.pose_status}", (20, 320), cv.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
+        cv.putText(right_panel, f"Human Pose: {self.pose_status}", (20, 220), cv.FONT_HERSHEY_SIMPLEX, 0.7, color, 2)
 
         # 6. คำนวณ FPS
         curr_time = time.time()

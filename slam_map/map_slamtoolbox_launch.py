@@ -24,14 +24,7 @@ def generate_launch_description():
                 os.path.join(yahboom_bringup_dir, 'launch', 'yahboomcar_bringup_launch.py')
             )
         ),
-
-        # 4. รัน Static TF (สะพานเชื่อมชื่อเฟรม radar_Link -> laser_frame)
-        Node(
-            package='tf2_ros',
-            executable='static_transform_publisher',
-            arguments=['0', '0', '0', '0', '0', '0', 'radar_Link', 'laser_frame']
-        ),
-        # 5. รัน SLAM Toolbox (พร้อมพารามิเตอร์ที่ถูกต้องสำหรับ Yahboom)
+        #รัน SLAM Toolbox (พร้อมพารามิเตอร์ที่ถูกต้องสำหรับ Yahboom)
 
         IncludeLaunchDescription(
 
@@ -45,28 +38,28 @@ def generate_launch_description():
 
                 'use_sim_time': 'False',
 
-                'base_frame': 'base_footprint',
+                'base_frame': 'base_link',
 
                 'odom_frame': 'odom',
 
                 'scan_topic': '/scan',
 
-                'resolution': '0.03',# กำหนดความละเอียดเป็น 3cm ต่อพิกเซล
+                'resolution': '0.05',# กำหนดความละเอียดเป็น 5cm ต่อพิกเซล
 
                 'map_update_interval': '1.0', 
 
-    		'minimum_travel_distance': '0.01',
+    		'minimum_travel_distance': '0.15', # หุ่นต้องวิ่งไปมากกว่า 15 cm ถึงจะอัปเดตแผนที่
     		
-    		'minimum_travel_heading': '0.01', #หุ่นยนต์ต้องหมุนตัวอย่างน้อยประมาณ 2.8 องศา (0.05 rad) ระบบถึงจะอัปเดตแผนที่
+    		'minimum_travel_heading': '0.05', #หุ่นยนต์ต้องหมุนตัวอย่างน้อยประมาณ 2.8 องศา (0.05 rad) ระบบถึงจะอัปเดตแผนที่
 
     		'throttle_scans': '1',
 
-    		'max_laser_range':'0.8',
+    		'max_laser_range':'3.0',
     		'use_scan_matching': 'True',
                 'use_scan_barycenter': 'True',
                 'do_loop_closing': 'true',
                 'loop_search_maximum_distance': '3.0',
-                'scan_buffer_size': '10',
+                'scan_buffer_size': '5',
                 'scan_buffer_maximum_scan_distance': '2.0',
                 'correlation_search_space_dimension': '0.5',
                 'correlation_search_space_resolution': '0.01'
@@ -75,9 +68,18 @@ def generate_launch_description():
 
         ),
 
+
+        # รัน Static TF (สะพานเชื่อมชื่อเฟรม radar_Link -> laser_frame)
+        Node(
+            package='tf2_ros',
+            executable='static_transform_publisher',
+            #arguments=['0', '0', '0', '0', '0', '0', 'base_link', 'laser_frame']
+            arguments=['-0.0046412', '0' , '0.094079','0','0','0','base_link','laser_frame']
+        ),
+
       
 
-        # 6. เปิด RViz2 พร้อมโหลดไฟล์ Config จากโฟลเดอร์ config
+        # เปิด RViz2 พร้อมโหลดไฟล์ Config จากโฟลเดอร์ config
         Node(
             package='rviz2',
             executable='rviz2',

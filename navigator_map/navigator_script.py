@@ -36,56 +36,82 @@ class TaskNavigator:
             self.run_external_script()
             
         print(f"--- เสร็จสิ้นภารกิจที่ {waypoint_name} ---\n")
-
 def main():
     rclpy.init()
     task_nav = TaskNavigator()
     nav = task_nav.nav
 
+    print("กำลังรอให้ Nav2 พร้อมใช้งาน...")
     nav.waitUntilNav2Active()
 
-    # โหลดไฟล์ YAML
-    try:
-        with open('nav_waypoints.yaml', 'r') as f:
-            data = yaml.safe_load(f)
-            all_waypoints = data['waypoints']
-    except Exception as e:
-        print(f"Error loading YAML: {e}")
-        return
-
-    # แสดงรายการและเลือกลำดับ
-    print(f"\nพบจุดทั้งหมด {len(all_waypoints)} จุด")
-    for i, wp in enumerate(all_waypoints):
-        print(f"[{i+1}] {wp['task']}")
-    
-    order_input = input("\nระบุลำดับการวิ่ง (เช่น 3,1,2): ")
-    order_indices = [int(x.strip()) - 1 for x in order_input.split(',')]
-    planned_waypoints = [all_waypoints[i] for i in order_indices]
-
-    for wp in planned_waypoints:
-        goal_pose = PoseStamped()
-        goal_pose.header.frame_id = 'map'
-        goal_pose.header.stamp = nav.get_clock().now().to_msg()
-        goal_pose.pose.position.x = wp['x']
-        goal_pose.pose.position.y = wp['y']
-        goal_pose.pose.orientation.z = wp['orientation']['z']
-        goal_pose.pose.orientation.w = wp['orientation']['w']
-
-        print(f"กำลังมุ่งหน้าไป: {wp['task']}")
-        nav.goToPose(goal_pose)
-
-        while not nav.isTaskComplete():
-            pass
-
-        if nav.getResult() == TaskResult.SUCCEEDED:
-            # ส่งชื่อ waypoint เข้าไปเช็คใน perform_task
-            task_nav.perform_task(wp['task'])
-        else:
-            print(f"ไม่สามารถไปถึง {wp['task']} ได้")
+    # เริ่ม Loop ใหญ่เพื่อให้รับค่าได้เรื่อยๆ
+    while rclpy.ok():
+        # โหลดไฟล์ YAML ทุกครั้งที่เริ่มรอบใหม่ (เผื่อมีการอัปเดตไฟล์ขณะโปรแกรมรัน)
+        try:
+            with open('nav_waypoints.yaml', 'r') as f:
+                data = yaml.safe_load(f)
+                all_waypoints = data['waypoints']
+        except Exception as e:
+            print(f"Error loading YAML: {e}")
             break
 
-    print("จบการทำงาน")
+        # แสดงรายการ Waypoint
+        print("\n" + "="*30)
+        print("รายการ Waypoints ที่พร้อมใช้งาน:")
+        for i, wp in enumerate(all_waypoints):
+            print(f"[{i+1}] {wp['task']} (x: {wp['x']}, y: {wp['y']},z: {wp['orientation']['z']}, w: {wp['orientation']['w']})")
+        print("[0] ออกจากโปรแกรม (Exit)")
+        print("="*30)
+        
+        # รับค่า Input
+        user_input = input("\nระบุลำดับการวิ่ง (เช่น 3,1,2) หรือกด 0 เพื่อเลิก: ")
+        
+        if user_input.strip() == '0':
+            print("ปิดโปรแกรม...")
+            break
+        
+        try:
+            order_indices = [int(x.strip()) - 1 for x in user_input.split(',') if x.strip()]
+            planned_waypoints = [all_waypoints[i] for i in order_indices]
+        except (ValueError, IndexError):
+            print("[!] ใส่ตัวเลขไม่ถูกต้อง กรุณาลองใหม่")
+            continue
+
+        # เริ่มการเดินทางตามลำดับที่ป้อน
+        print(f"\nเริ่มการเดินทางทั้งหมด {len(planned_waypoints)} จุด...")
+        
+        for wp in planned_waypoints:
+            goal_pose = PoseStamped()
+            goal_pose.header.frame_id = 'map'
+            goal_pose.header.stamp = nav.get_clock().now().to_msg()
+            goal_pose.pose.position.x = wp['x']
+            goal_pose.pose.position.y = wp['y']
+            goal_pose.pose.orientation.z = wp['orientation']['z']
+            goal_pose.pose.orientation.w = wp['orientation']['w']
+
+            print(f">> มุ่งหน้าไป: {wp['task']}")
+            nav.goToPose(goal_pose)
+
+            # ตรวจสอบสถานะการวิ่ง
+            while not nav.isTaskComplete():
+                # คุณสามารถเพิ่ม logic ตรวจสอบ Feedback ตรงนี้ได้
+                pass
+
+            result = nav.getResult()
+            if result == TaskResult.SUCCEEDED:
+                task_nav.perform_task(wp['task'])
+            elif result == TaskResult.CANCELED:
+                print(f"ภารกิจไป {wp['task']} ถูกยกเลิก")
+                break
+            elif result == TaskResult.FAILED:
+                print(f"ไม่สามารถไปถึง {wp['task']} ได้ (อาจมีสิ่งกีดขวาง)")
+                break
+
+        print("\n[SUCCESS] วิ่งครบตามแผนงานแล้ว!")
+        print("กลับไปรอรับคำสั่งชุดใหม่...")
+
     rclpy.shutdown()
 
 if __name__ == '__main__':
     main()
+

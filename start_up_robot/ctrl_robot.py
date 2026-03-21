@@ -134,7 +134,7 @@ def main():
     rclpy.init()
     node = Yahboom_Keyboard("yahboom_keyboard_ctrl")
     
-    (speed, turn) = (0.2, 1.0)
+    (speed, turn) = (0.15, 1.0)
     (x, th) = (0, 0)
     status = 0 # เพิ่มตัวนับสถานะเพื่อพิมพ์ msg ซ้ำ
     count = 0

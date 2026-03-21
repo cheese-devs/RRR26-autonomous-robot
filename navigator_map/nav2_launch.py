@@ -16,7 +16,7 @@ def generate_launch_description():
     yahboom_bringup_dir = get_package_share_directory('yahboomcar_bringup')
     
     map_file = os.path.abspath('my_robot_map.yaml')
-    params_file = os.path.abspath(os.path.join('prarams', 'nav2_params.yaml'))
+    params_file = os.path.abspath(os.path.join('prarams', 'rpp_nav_params.yaml'))
     rviz_config_path = os.path.abspath(os.path.join('rviz', 'nav2_config.rviz'))
 
     # --- ส่วนของการประกาศ Argument เพื่อให้เลือกเปิด/ปิดได้จาก Terminal ---
@@ -26,7 +26,7 @@ def generate_launch_description():
         description='Whether to start RViz'
     )
 
-    # --- ขั้นตอนที่ 1: เปิด RViz2 (ใส่ Condition ไว้) ---
+    # --- เปิด RViz2 (ใส่ Condition ไว้) ---
     start_rviz = Node(
         package='rviz2',
         executable='rviz2',
@@ -37,7 +37,7 @@ def generate_launch_description():
     )
     # --- ขั้นตอนที่ 2: รอ 3 วินาที แล้วเปิด Bringup หุ่นยนต์ ---
     start_bringup = TimerAction(
-        period=3.0,
+        period=5.0,
         actions=[
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -47,9 +47,10 @@ def generate_launch_description():
         ]
     )
 
-    # --- ขั้นตอนที่ 3: รอ 7 วินาที แล้วรัน Nav2 ---
+    # --- รอ 7 วินาที แล้วรัน Nav2 ---
+    # --- แก้ไขในส่วน actions ของ start_nav ---
     start_nav = TimerAction(
-        period=7.0, 
+        period=5.0, 
         actions=[
             IncludeLaunchDescription(
                 PythonLaunchDescriptionSource(
@@ -61,16 +62,14 @@ def generate_launch_description():
                     'use_sim_time': 'False'
                 }.items()
             ),
-        Node(
-            package='yahboomcar_nav',
-            executable='stop_car'
-        ) ,
-        Node(
-     package='tf2_ros',
-     executable='static_transform_publisher',
-     name='base_link_to_base_laser',
-     arguments=['-0.0046412', '0' , '0.094079','0','0','0','base_link','laser_frame']
-    ) 
+  
+    # เชื่อม base_link -> laser_frame (เซนเซอร์ต้องติดบนตัวหุ่น)
+    Node(
+        package='tf2_ros',
+        executable='static_transform_publisher',
+        name='base_link_to_laser',
+        arguments=['-0.0046412', '0' , '0.094079', '0', '0', '0', 'base_link', 'laser_frame']
+    ),
         ]
     )
 
