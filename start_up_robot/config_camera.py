@@ -31,7 +31,6 @@ def setup_wifi_module():
             ser = serial.Serial(port, baudrate, timeout=1)
             
             commands = [
-                "wifi_ver",
                 "wifi_mode:1",
                 f"domain_id:{user_input}",
             ]

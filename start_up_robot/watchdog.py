@@ -88,7 +88,7 @@ class SystemWatchdog(Node):
                 color = RED
             bat_status = f"{color}{self.battery_voltage:.2f} V{RESET}"
         
-        print(f"[{time.strftime('%H:%M:%S')}] Cam: {cam_status:25} |ROBOT: {imu_status} |BAT: {bat_status}")
+        print(f"[{time.strftime('%H:%M:%S')}] Cam: {cam_status:10} |ROBOT: {imu_status:10} |BAT: {bat_status:10}")
 
 def main():
     rclpy.init()

@@ -56,7 +56,7 @@ bt_navigator:
   ros__parameters:
     use_sim_time: False
     global_frame: map
-    robot_base_frame: base_footprint
+    robot_base_frame: base_link
     odom_topic: /odom
     bt_loop_duration: 10
     default_server_timeout: 20
@@ -138,7 +138,7 @@ controller_server:
     progress_checker:
       plugin: "nav2_controller::SimpleProgressChecker"
       required_movement_radius: 0.5
-      movement_time_allowance: 30.0  # เพิ่มจาก 10 เป็น 30 วินาที
+      movement_time_allowance: 10.0
     # Goal checker parameters
     #precise_goal_checker:
     #  plugin: "nav2_controller::SimpleGoalChecker"
@@ -148,8 +148,8 @@ controller_server:
     general_goal_checker:
       stateful: True
       plugin: "nav2_controller::SimpleGoalChecker"
-      xy_goal_tolerance: 0.05
-      yaw_goal_tolerance: 0.05
+      xy_goal_tolerance: 0.25
+      yaw_goal_tolerance: 0.25
     # Regulated Pure Pursuit (RPP)
     FollowPath:
       plugin: "nav2_regulated_pure_pursuit_controller::RegulatedPurePursuitController"
@@ -157,28 +157,34 @@ controller_server:
       lookahead_dist: 0.6       # ระยะมองล่วงหน้า (เมตร)
       max_lookahead_dist: 0.9
       use_velocity_scaled_lookahead_dist: True
-      min_approach_linear_velocity: 0.1
       approach_velocity_scaling_dist: 0.6
       use_collision_detection: True  # False,True
       max_allowed_time_to_collision_up_to_carrot: 1.0
       use_regulated_linear_velocity_scaling: True
       regulated_linear_scaling_min_radius: 0.9
       regulated_linear_scaling_min_speed: 0.05
-      use_rotate_to_heading: True    #ให้หุ่นหมุนหน้าให้ตรงพาธก่อนเริ่มเดิน
+      use_rotate_to_heading: True    #ให้หุ่นหมุนหน้าให้ตรงพาธก่อนเริ่มเดิน False,True
       allow_reversing: False
       use_cost_scaling_dist: True
       cost_scaling_dist: 0.3
       cost_scaling_gain: 1.0
       inflation_cost_scaling_factor: 3.0
       transform_tolerance: 1.0 # เพิ่มจาก 0.2
-      rotate_to_heading_min_angle: 0.5
-      min_approach_linear_velocity: 0.10   # เพิ่มความเร็วเดินหน้าขั้นต่ำด้วย
-      rotate_to_heading_angular_vel: 3.5  # เพิ่มความเร็วการหมุนตัว
-      desired_linear_vel: 0.15           # กำหนดความเร็วเป็น 0.15m/s
-      min_lookahead_dist: 0.2           # เลี้ยวคมขึ้น เกาะเส้นพาธใกล้ๆ
-      max_angular_accel: 5.0            # เร่งการหมุนให้ไวขึ้น
-      lookahead_time: 2.5            # เพิ่มเวลาในการมองล่วงหน้า
+ 
+      rotate_to_heading_angular_vel: 1.5  # เพิ่มความเร็วการหมุนตัว
+      
+      max_angular_accel: 1.0            # เร่งการหมุนให้ไวขึ้น
 
+
+      # ปรับให้ยอมเดินหน้าได้ง่ายขึ้น ไม่ต้องรอหมุนจนตรงเป๊ะ
+      rotate_to_heading_min_angle: 0.7    # เพิ่มจาก 0.5 (ประมาณ 40 องศา)
+
+      # ปรับระยะมองให้เสถียร ไม่ส่าย
+      min_lookahead_dist: 0.3             # การส่ายเข้าหาเส้น
+      lookahead_time: 2.0                 # ปรับให้สมดุล
+      # การตั้งค่าความเร็ว
+      desired_linear_vel: 0.15  # กำหนดความเร็วเป็น 0.15m/s
+      min_approach_linear_velocity: 0.05  # ลดลงนิดหน่อยเพื่อให้ช่วงใกล้ถึงเป้าหมายนุ่มนวลขึ้น
 
 local_costmap:
   local_costmap:
@@ -186,18 +192,18 @@ local_costmap:
       update_frequency: 5.0
       publish_frequency: 2.0
       global_frame: odom
-      robot_base_frame: base_footprint
+      robot_base_frame: base_link
       use_sim_time: False
       rolling_window: true
       width: 3
       height: 3
       resolution: 0.05
-      robot_radius: 0.18
+      robot_radius: 0.22
       plugins: ["voxel_layer", "inflation_layer"]
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 10.0
-        inflation_radius: 0.3
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.55
       voxel_layer:
         plugin: "nav2_costmap_2d::VoxelLayer"
         enabled: True
@@ -217,7 +223,7 @@ local_costmap:
           raytrace_max_range: 3.0
           raytrace_min_range: 0.0
           obstacle_max_range: 2.5
-          obstacle_min_range: 0.2
+          obstacle_min_range: 0.0
       static_layer:
         plugin: "nav2_costmap_2d::StaticLayer"
         map_subscribe_transient_local: True
@@ -229,9 +235,9 @@ global_costmap:
       update_frequency: 1.0
       publish_frequency: 1.0
       global_frame: map
-      robot_base_frame: base_footprint
+      robot_base_frame: base_link
       use_sim_time: False
-      robot_radius: 0.18
+      robot_radius: 0.22
       resolution: 0.05
       track_unknown_space: true
       plugins: ["static_layer", "obstacle_layer", "inflation_layer"]
@@ -254,8 +260,8 @@ global_costmap:
         map_subscribe_transient_local: True
       inflation_layer:
         plugin: "nav2_costmap_2d::InflationLayer"
-        cost_scaling_factor: 10.0
-        inflation_radius: 0.3
+        cost_scaling_factor: 3.0
+        inflation_radius: 0.55
       always_send_full_costmap: True
 
 map_server:
@@ -310,13 +316,13 @@ behavior_server:
     assisted_teleop:
       plugin: "nav2_behaviors/AssistedTeleop"
     global_frame: odom
-    robot_base_frame: base_footprint
+    robot_base_frame: base_link
     transform_tolerance: 0.1
     use_sim_time: False
     simulate_ahead_time: 2.0
+    max_rotational_vel: 1.0
     min_rotational_vel: 0.4
-    max_rotational_vel: 2.5              # เพิ่มเพดานความเร็วการหมุนของระบบ
-    rotational_acc_lim: 5.0              # เพิ่มอัตราเร่ง
+    rotational_acc_lim: 3.2
 
 robot_state_publisher:
   ros__parameters:
@@ -339,12 +345,11 @@ velocity_smoother:
     smoothing_frequency: 20.0
     scale_velocities: False
     feedback: "OPEN_LOOP"
+    max_velocity: [0.26, 0.0, 1.0]
     min_velocity: [-0.26, 0.0, -1.0]
+    max_accel: [2.5, 0.0, 3.2]
     max_decel: [-2.5, 0.0, -3.2]
     odom_topic: "odom"
     odom_duration: 0.1
     deadband_velocity: [0.0, 0.0, 0.0]
     velocity_timeout: 1.0
-    # ... [Linear, Lateral, Angular]
-    max_velocity: [0.20, 0.0, 1.5]      # เปิดเพดานความเร็วทั้งเดินหน้าและเลี้ยว
-    max_accel: [2.5, 0.0, 5.0]          # เพิ่มอัตราเร่งการเลี้ยว
