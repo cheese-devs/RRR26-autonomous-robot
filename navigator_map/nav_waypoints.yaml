@@ -1,34 +1,33 @@
 waypoints:
-- task: survivor_1
+- task: waypoint_1
   type: s
-  x: 0.791
-  y: -0.565
+  x: 0.684
+  y: -0.634
   orientation:
-    z: -0.71257
-    w: 0.7016
-- task: scan_1
+    z: -0.67722
+    w: 0.73578
+- task: waypoint_2
   type: a
-  x: 1.626
-  y: -0.589
+  x: 1.624
+  y: -0.739
   orientation:
-    z: -0.08268
-    w: 0.99658
-- task: scan_2
+    z: -0.06192
+    w: 0.99808
+- task: waypoint_3
   type: a
-  x: 0.904
-  y: -1.9
+  x: 2.515
+  y: -1.412
   orientation:
-    z: 0.75323
-    w: 0.65776
-- task: survivor_2
+    z: -0.99555
+    w: 0.09423
+- task: waypoint_4
   type: s
-  x: 2.432
-  y: -1.474
+  x: 0.855
+  y: -1.564
   orientation:
-    z: 0.99668
-    w: -0.08144
+    z: 0.62086
+    w: 0.78392
 - task: HOME
-  type: h
   x: 0.0
   y: 0.0
   orientation:

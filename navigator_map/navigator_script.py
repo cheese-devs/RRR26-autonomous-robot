@@ -93,6 +93,10 @@ class MissionRunner:
 
         print(f"\n=== เริ่ม Mission ({len(waypoints)} จุด) ===\n")
         for wp in waypoints:
+            if wp['task'] in ('waypoint_4', 'HOME'):
+                print(f"[INFO] Clear costmap ก่อน {wp['task']}")
+                self.nav.clearAllCostmaps()
+                time.sleep(1.0)
             if self._go_to(wp):
                 self._perform_task(wp)
 
