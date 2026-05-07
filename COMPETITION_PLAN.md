@@ -6,8 +6,8 @@
 ## ภาพรวม Mission Sequence
 
 ```
-START → scan_1 (อ่าน AprilTag)
-      → survivor_1 (ตรวจคน + ปล่อยกล่อง)
+START → survivor_1 (ตรวจคน + ปล่อยกล่อง)
+      → scan_1 (อ่าน AprilTag)
       → scan_2 (อ่าน AprilTag)
       → survivor_2 (ตรวจคน + ปล่อยกล่อง)
       → HOME
@@ -15,7 +15,7 @@ START → scan_1 (อ่าน AprilTag)
 
 ---
 
-## สัปดาห์ที่ 1 (5–11 พ.ค.) — ตั้งค่า Waypoints
+## ~~สัปดาห์ที่ 1 (5–11 พ.ค.) — ตั้งค่า Waypoints~~ ✅ เสร็จแล้ว
 
 **เป้าหมาย:** บันทึก waypoint ทุกจุดในสนามจริง
 
@@ -28,8 +28,8 @@ START → scan_1 (อ่าน AprilTag)
 | `HOME` | จุดเริ่มต้น | ตำแหน่งกลับบ้าน |
 
 **งาน:**
-- [ ] ใช้ `get_waypoint.py` บันทึกตำแหน่งทุกจุดที่สนามจริง
-- [ ] อัปเดต `nav_waypoints.yaml` ให้ครบทุก waypoint
+- [x] ใช้ `get_waypoint.py` บันทึกตำแหน่งทุกจุดที่สนามจริง
+- [x] อัปเดต `nav_waypoints.yaml` ให้ครบทุก waypoint
 
 ---
 

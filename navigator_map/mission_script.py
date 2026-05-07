@@ -8,6 +8,8 @@ import subprocess
 import os
 import signal
 import math
+import threading
+import sys
 
 class SingleActionWithTimeout(Node):
     def __init__(self):
@@ -45,26 +47,37 @@ class SingleActionWithTimeout(Node):
         self.rotation_count += 1
         self.get_logger().info(
             f"ไม่พบคน หมุน 45° (ครั้งที่ {self.rotation_count}/{self.max_rotations})...")
+        threading.Thread(target=self._rotate_and_restart, daemon=True).start()
+
+    def _rotate_and_restart(self):
+        self.get_logger().info("  [THREAD] เริ่มหมุน...")
         self._rotate_45()
-        self.timer = self.create_timer(self.timeout_sec, self.timeout_callback)
+        self.get_logger().info("  [THREAD] หมุนเสร็จ")
+        if not self.found:
+            self.timer = self.create_timer(self.timeout_sec, self.timeout_callback)
+
+    def _do_servo_and_exit(self):
+        val = Int32()
+        val.data = -90
+        self.pub_servo.publish(val)
+        time.sleep(2.0)
+
+        val.data = 0
+        self.pub_servo.publish(val)
+        time.sleep(1.0)
+
+        self.get_logger().info("ทำงานเสร็จสิ้น ปิดโปรแกรม...")
+        os._exit(0)
 
     def listener_callback(self, msg):
-        if len(msg.points) > 0 and not self.found:
+        n = len(msg.points)
+        if n > 0:
+            self.get_logger().info(f"  [CB] ตรวจพบ {n} points")
+        if n > 0 and not self.found:
             self.found = True
             self.timer.cancel()
             self.get_logger().info("ตรวจพบข้อมูล! กำลังสั่งงาน Servo...")
-
-            val = Int32()
-            val.data = -90
-            self.pub_servo.publish(val)
-            time.sleep(1.0)
-
-            val.data = 0
-            self.pub_servo.publish(val)
-            time.sleep(1.0)
-
-            self.get_logger().info("ทำงานเสร็จสิ้น ปิดโปรแกรม...")
-            raise SystemExit
+            threading.Thread(target=self._do_servo_and_exit, daemon=False).start()
 
 def main():
     script_dir = os.path.dirname(os.path.abspath(__file__))

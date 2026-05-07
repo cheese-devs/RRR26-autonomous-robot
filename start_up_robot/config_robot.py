@@ -498,7 +498,7 @@ if __name__ == '__main__':
     robot = MicroROS_Robot(port='/dev/ttyUSB0', debug=False)
     print("Rebooting Device, Please wait.")
     robot.reboot_device()
-    robot.set_wifi_config("The netkong 2.4 GHz", "REDACTED")
+    robot.set_wifi_config("Narzo", "")
     robot.set_udp_config([0,0,0,0], 8090)
     robot.set_car_type(robot.CAR_TYPE_COMPUTER)
     # robot.set_car_type(robot.CAR_TYPE_RPI5)

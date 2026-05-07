@@ -7,6 +7,7 @@ import os
 import signal
 import time
 import math
+import threading
 
 class AprilTagScanner(Node):
     def __init__(self):
@@ -44,12 +45,22 @@ class AprilTagScanner(Node):
         self.rotation_count += 1
         self.get_logger().info(
             f"ไม่พบ AprilTag หมุน 45° (ครั้งที่ {self.rotation_count}/{self.max_rotations})...")
+        threading.Thread(target=self._rotate_and_restart, daemon=True).start()
+
+    def _rotate_and_restart(self):
+        self.get_logger().info("  [THREAD] เริ่มหมุน...")
         self._rotate_45()
-        self.timer = self.create_timer(self.timeout_sec, self.timeout_callback)
+        self.get_logger().info("  [THREAD] หมุนเสร็จ")
+        if not self.found:
+            self.timer = self.create_timer(self.timeout_sec, self.timeout_callback)
 
     def tag_callback(self, msg):
-        if self.found or not msg.data:
+        if not msg.data:
+            self.get_logger().debug("  [CB] ได้รับ msg แต่ data ว่าง")
             return
+        if self.found:
+            return
+        self.get_logger().info(f"  [CB] ได้รับ Tag ID: {msg.data}")
         self.found = True
         self.timer.cancel()
         print(f"[AprilTag] ID: {msg.data}")
