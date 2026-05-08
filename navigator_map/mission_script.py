@@ -12,8 +12,9 @@ import threading
 import sys
 
 class SingleActionWithTimeout(Node):
-    def __init__(self):
+    def __init__(self, cam_proc):
         super().__init__('single_action_timeout')
+        self.cam_proc = cam_proc
         self.pub_servo = self.create_publisher(Int32, '/servo_s1', 10)
         self.pub_cmd_vel = self.create_publisher(Twist, '/cmd_vel', 10)
         self.sub_points = self.create_subscription(
@@ -67,6 +68,10 @@ class SingleActionWithTimeout(Node):
         time.sleep(1.0)
 
         self.get_logger().info("ทำงานเสร็จสิ้น ปิดโปรแกรม...")
+        try:
+            os.killpg(os.getpgid(self.cam_proc.pid), signal.SIGTERM)
+        except ProcessLookupError:
+            pass
         os._exit(0)
 
     def listener_callback(self, msg):
@@ -88,7 +93,7 @@ def main():
     time.sleep(4.0)  # รอให้ MediaPipe + camera พร้อม
 
     rclpy.init()
-    node = SingleActionWithTimeout()
+    node = SingleActionWithTimeout(cam_proc)
     try:
         rclpy.spin(node)
     except SystemExit:

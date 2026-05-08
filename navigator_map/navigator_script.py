@@ -60,6 +60,12 @@ class MissionRunner:
                 if now - last_log >= 5.0:
                     print(f"   [NAV] รออยู่... ({int(now - start)} วิ)")
                     last_log = now
+                if wp['task'] == 'HOME':
+                    fb = self.nav.getFeedback()
+                    if fb and fb.distance_remaining < 0.15:
+                        self.nav.cancelTask()
+                        print("   [HOME] ถึงแล้ว หยุด")
+                        return True
 
             result = self.nav.getResult()
             if result == TaskResult.SUCCEEDED:
@@ -89,6 +95,7 @@ class MissionRunner:
         t.start()
         if not done.wait(timeout=15.0):
             print("[WARN] waitUntilNav2Active หมดเวลา — ดำเนินการต่อเลย")
+            t.join(timeout=2.0)
         print("[INFO] Nav2 ready")
 
         print(f"\n=== เริ่ม Mission ({len(waypoints)} จุด) ===\n")
@@ -98,7 +105,8 @@ class MissionRunner:
                 self.nav.clearAllCostmaps()
                 time.sleep(1.0)
             if self._go_to(wp):
-                self._perform_task(wp)
+                if wp['task'] != 'HOME':
+                    self._perform_task(wp)
 
         print("\n[DONE] Mission เสร็จสิ้น!")
 
