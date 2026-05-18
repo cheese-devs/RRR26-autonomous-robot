@@ -1,32 +1,28 @@
 waypoints:
 - task: waypoint_1
-  type: s
-  x: 0.684
-  y: -0.634
+  x: 0.712
+  y: -0.469
   orientation:
-    z: -0.67722
-    w: 0.73578
+    z: -0.73385
+    w: 0.67931
 - task: waypoint_2
-  type: a
-  x: 1.624
-  y: -0.739
+  x: 1.743
+  y: -0.431
   orientation:
-    z: -0.06192
-    w: 0.99808
+    z: -0.00865
+    w: 0.99996
 - task: waypoint_3
-  type: a
-  x: 2.515
-  y: -1.412
+  x: 2.476
+  y: -1.299
   orientation:
-    z: -0.99555
-    w: 0.09423
+    z: 0.99994
+    w: -0.01135
 - task: waypoint_4
-  type: s
-  x: 0.855
-  y: -1.564
+  x: 0.723
+  y: -1.792
   orientation:
-    z: 0.62086
-    w: 0.78392
+    z: 0.72873
+    w: 0.6848
 - task: HOME
   x: 0.0
   y: 0.0

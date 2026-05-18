@@ -16,7 +16,7 @@ def generate_launch_description():
     yahboom_bringup_dir = get_package_share_directory('yahboomcar_bringup')
     
     map_file = os.path.abspath('my_robot_map.yaml')
-    params_file = os.path.abspath(os.path.join('prarams', 'rpp_nav_params.yaml'))
+    params_file = os.path.abspath(os.path.join('prarams', 'dwb_nav_params.yaml'))
     rviz_config_path = os.path.abspath(os.path.join('rviz', 'nav2_config.rviz'))
 
     # --- ส่วนของการประกาศ Argument เพื่อให้เลือกเปิด/ปิดได้จาก Terminal ---

@@ -4,7 +4,7 @@
 import rclpy
 from rclpy.node import Node
 from geometry_msgs.msg import Point
-from std_msgs.msg import String
+from std_msgs.msg import String, Bool
 import mediapipe as mp
 from yahboomcar_msgs.msg import PointArray
 from cv_bridge import CvBridge
@@ -56,35 +56,50 @@ class MY_Picture(Node):
 
         # ตัวตรวจจับ Pose
         self.pose_detector = PoseDetector()
-        
+
+        # toggle ให้ navigator เปิด/ปิด detection — default OFF ลด CPU ตอน navigate
+        self.detect_enabled = False
+        self.sub_enable = self.create_subscription(
+            Bool, '/vision/detect_enable', self._on_enable, 10)
+
         # ตัวแปรสถานะและข้อมูลล่าสุด (ค้างค่าไว้)
         self.latest_at_id = "Waiting for Tag..."
         self.pose_status = "Not Found"
-        
+
         self.last_time = time.time()
         self.fps = 0
+
+    def _on_enable(self, msg):
+        if msg.data != self.detect_enabled:
+            self.get_logger().info(f"[VISION] detect_enabled → {msg.data}")
+        self.detect_enabled = msg.data
 
     def handleTopic(self, msg):
         # 1. รับภาพและปรับขนาด
         frame = self.bridge.compressed_imgmsg_to_cv2(msg)
         frame = cv.resize(frame, (640, 480))
-        gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
-        	
-        # 3. ตรวจจับ AprilTag (อัปเดตค่าล่าสุด)
-        tags = self.at_detector.detect(gray)
-        for tag in tags:
-            for i in range(4):
-                cv.line(frame, tuple(tag.corners[i].astype(int)), 
-                        tuple(tag.corners[(i+1)%4].astype(int)), (255, 0, 255), 2)
-            self.latest_at_id = f"ID: {tag.tag_id}"
-            at_msg = String()
-            at_msg.data = str(tag.tag_id) # ส่งเฉพาะตัวเลข ID หรือ self.latest_at_id ก็ได้
-            self.pub_at_id.publish(at_msg)
 
-        # 4. ตรวจจับ Pose (ส่งข้อมูลออก Topic และวาดบนภาพซ้าย)
-        frame, point_msg, detected = self.pose_detector.process_pose(frame, draw=True)
-        self.pub_point.publish(point_msg)
-        self.pose_status = "Detected" if detected else "Not Found"
+        detected = False
+
+        if self.detect_enabled:
+            gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
+
+            # 3. ตรวจจับ AprilTag (อัปเดตค่าล่าสุด)
+            tags = self.at_detector.detect(gray)
+            for tag in tags:
+                for i in range(4):
+                    cv.line(frame, tuple(tag.corners[i].astype(int)),
+                            tuple(tag.corners[(i+1)%4].astype(int)), (255, 0, 255), 2)
+                self.latest_at_id = f"ID: {tag.tag_id}"
+                at_msg = String()
+                at_msg.data = str(tag.tag_id)
+                self.pub_at_id.publish(at_msg)
+
+            # 4. ตรวจจับ Pose (ส่งข้อมูลออก Topic และวาดบนภาพซ้าย)
+            frame, point_msg, detected = self.pose_detector.process_pose(frame, draw=True)
+            self.pub_point.publish(point_msg)
+
+        self.pose_status = "Detected" if detected else ("Not Found" if self.detect_enabled else "Disabled")
 
         # 5. สร้าง Dashboard ด้านขวา (ไม่มีโครงร่างมนุษย์)
         right_panel = np.zeros((480, 400, 3), np.uint8) # กำหนดความกว้าง 400
@@ -117,15 +132,12 @@ def main():
     node = MY_Picture("Yahboom_Vision_Node")
     try:
         rclpy.spin(node)
-    except (KeyboardInterrupt, Exception):
+    except KeyboardInterrupt:
         pass
     finally:
         cv.destroyAllWindows()
         node.destroy_node()
-        try:
-            rclpy.shutdown()
-        except Exception:
-            pass
+        rclpy.shutdown()
 
 if __name__ == '__main__':
     main()

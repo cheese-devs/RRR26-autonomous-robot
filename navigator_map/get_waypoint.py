@@ -8,14 +8,14 @@ import select
 class WaypointSaver(Node):
     def __init__(self):
         super().__init__('waypoint_saver')
-
+        
         # ตั้งค่า TF Listener เพื่อดึงตำแหน่งหุ่นยนต์
         self.tf_buffer = Buffer()
         self.tf_listener = TransformListener(self.tf_buffer, self)
-
+        
         self.waypoints = []
         self.filename = 'nav_waypoints.yaml'
-
+        
         self.get_logger().info('--- Waypoint Saver (Robot Current Pose) ---')
         self.get_logger().info('1. Drive your robot to the desired location.')
         self.get_logger().info('2. Press "s" in THIS terminal to SAVE current robot pose.')
@@ -26,15 +26,15 @@ class WaypointSaver(Node):
             # ดึงตำแหน่งล่าสุดจาก TF (จาก map ไปยังตัวหุ่นยนต์ base_link)
             now = rclpy.time.Time()
             # รอ transform 0.1 วินาทีเผื่อความชัวร์
-            trans = self.tf_buffer.lookup_transform('map', 'base_link', now,
+            trans = self.tf_buffer.lookup_transform('map', 'base_link', now, 
                                                     timeout=rclpy.duration.Duration(seconds=0.1))
-
+            
             pos = trans.transform.translation
             ori = trans.transform.rotation
-
+            
             current_count = len(self.waypoints) + 1
             waypoint_name = f'waypoint_{current_count}'
-
+            
             waypoint_data = {
                 'task': waypoint_name,
                 'x': round(pos.x, 3),
@@ -44,15 +44,15 @@ class WaypointSaver(Node):
                     'w': round(ori.w, 5)
                 }
             }
-
+            
             self.waypoints.append(waypoint_data)
-
+            
             # บันทึกลง YAML
             with open(self.filename, 'w') as f:
                 yaml.dump({'waypoints': self.waypoints}, f, sort_keys=False)
-
+            
             print(f"\n[SAVED] {waypoint_name}: x={pos.x:.3f}, y={pos.y:.3f}")
-
+            
         except Exception as e:
             self.get_logger().warn(f'Could not get robot pose: {e}')
 
@@ -76,7 +76,7 @@ def main(args=None):
         while rclpy.ok():
             # รัน callback ของ ROS (เช่น TF update)
             rclpy.spin_once(node, timeout_sec=0.05)
-
+            
             # ตรวจสอบการกดปุ่ม
             key = get_key(settings).lower()
             if key == 's':
