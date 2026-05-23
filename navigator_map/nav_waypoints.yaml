@@ -1,23 +1,36 @@
 waypoints:
 - task: waypoint_1
+  type: person          # person = หาคน servo drop | tag = อ่าน AprilTag
   x: 0.712
   y: -0.469
   orientation:
     z: -0.73385
     w: 0.67931
 - task: waypoint_2
+  type: tag
   x: 1.743
   y: -0.431
   orientation:
     z: -0.00865
     w: 0.99996
 - task: waypoint_3
+  type: tag
   x: 2.476
   y: -1.299
   orientation:
     z: 0.99994
     w: -0.01135
+  # จุดคั่นก่อนถึง waypoint_3 — บังคับ path ขึ้นแถบบนที่โล่ง แล้วดิ่งลงเลนขวา
+  # เลี่ยงเส้นล่างที่ต้องมุดใต้กล่อง ⊐ ทันทีที่ออกจาก wp2 (ตัวการ planner แกว่งซ้ายขวา)
+  # หันหน้า -y (z,w = sin/cos(-45°)) เตรียมดิ่งลงเลนขวาต่อ
+  via:
+    - x: 2.65
+      y: 0.05
+      orientation:
+        z: -0.7071
+        w: 0.7071
 - task: waypoint_4
+  type: person
   x: 0.723
   y: -1.792
   orientation:
