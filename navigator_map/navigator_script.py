@@ -42,7 +42,7 @@ class TaskNavigator:
         
         try:
             # รันสคริปต์และรอ (Wait) จนกว่ากระบวนการจะจบ
-            subprocess.run(["python3", script_path, wp_type], check=True)
+            subprocess.run(["python3", "-u", script_path, wp_type], check=True)
             print("   -> ภารกิจในสคริปต์เสร็จสิ้นแล้ว")
         except subprocess.CalledProcessError as e:
             print(f"   -> [ERROR] สคริปต์ภารกิจทำงานผิดพลาด: {e}")
