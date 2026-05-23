@@ -4,3 +4,8 @@ __pycache__/
 
 # Competition docs
 *.pdf
+
+# Run logs
+navigator_map/logs/
+navigator_map/run.log
+
