@@ -14,8 +14,9 @@ MAX_NAV_RETRY    = 1     # ลองซ้ำเมื่อ FAILED กี่ค
 # หลัง mission (person/tag) หุ่นหมุนหาเป้า → อาจค้างในซอก U ของ survivor zone:
 # ตัวหุ่นยืนคร่อม inflated cells หลายด้านพร้อมกัน → DWB หา trajectory ไม่ได้ ออก 0 m/s
 # วิธีกัน: ถอยออกจากซอกด้วย Nav2 BackUp behavior (collision-aware) ก่อนสั่ง goToPose จุดถัดไป
-# 0.20m พอตรงทฤษฎี แต่จริงไม่พ้นซอก U → ใช้ 0.50m ไปถึงปากซอก (collision-aware จะ abort เองถ้าชน)
-POCKET_BACKUP_DIST_M       = 0.50
+# 0.20m พอตรงทฤษฎี แต่จริงไม่พ้นซอก U → 0.30m พอออกแต่ไม่ชนกำแพงหลัง (หลังขยับ WP เข้า 5cm)
+# เคยใช้ 0.50m แต่ชนกำแพงด้านหลังของซอกหลังขยับ WP1/WP4 เข้า 5cm → BackUp FAILED → ติดในซอก
+POCKET_BACKUP_DIST_M       = 0.30
 POCKET_BACKUP_SPEED_MPS    = 0.05
 POCKET_BACKUP_TIMEOUT_SEC  = 8
 
@@ -61,9 +62,15 @@ class TaskNavigator:
 
         ใช้ Nav2 BackUp behavior (collision-aware ผ่าน behavior_server) — ถ้าด้านหลัง
         มีกำแพง simulate_ahead_time=2.0s จะปฏิเสธ คืน FAILED แล้วเราเดินหน้าต่อไม่ crash
+
+        ตอน mission_script รัน (warmup 2.5s + spin หา tag + servo) local costmap สะสม
+        ghost obstacles (AMCL drift / sensor noise) → BackUp collision check refuse
+        เคลียร์ก่อนเรียก backup → ลด false positive (กำแพงจริงห่าง 60cm แต่ ghost ใกล้กว่า)
         """
         nav = self.nav
         try:
+            nav.clearAllCostmaps()
+            time.sleep(CLEAR_SETTLE_SEC)
             accepted = nav.backup(
                 backup_dist=POCKET_BACKUP_DIST_M,
                 backup_speed=POCKET_BACKUP_SPEED_MPS,

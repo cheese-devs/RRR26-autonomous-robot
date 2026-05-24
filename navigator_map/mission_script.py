@@ -134,8 +134,17 @@ class MissionScanner(Node):
         if self.pub_servo.get_subscription_count() == 0:
             self.get_logger().warn("servo ยังไม่มี subscriber — ส่งคำสั่งแบบเสี่ยง")
 
-        self._hold_servo(-90, SERVO_HOLD_SEC)   # กดเตะลง
-        self._hold_servo(0,   SERVO_HOLD_SEC)   # คืนตำแหน่ง
+        # กลไกเป็น dispenser ปล่อยกล่อง 1 ใบต่อ 1 strike (รอบสวิงลง -89)
+        # ตั้งใจฟาด 2 ครั้ง = ปล่อย 2 กล่องต่อ waypoint เป็น safety margin
+        # เผื่อกล่องใบแรกตกพลาดจุด ใบที่ 2 ตามไปเพิ่มโอกาส
+        # เผื่อ margin 1° กัน mechanical stop ของ MG90S (limit ±90° เฟืองโลหะแตกง่ายถ้าชน stop)
+        # 178° swing (-89↔+89) ใช้ 0.4s — MG90S no-load ใช้ 0.3s แต่ติดโหลด+DDS+S-curve เผื่อ
+        # 89° swing (0→+89, -89→0) ใช้ 0.3s พอ
+        self._hold_servo(+89, 0.3)   # pre-load (0 → +89 = 89°)
+        self._hold_servo(-89, 0.4)   # strike 1 (178°) — ปล่อยกล่องใบ 1
+        self._hold_servo(+89, 0.4)   # ยกกลับ (178°)
+        self._hold_servo(-89, 0.4)   # strike 2 (178°) — ปล่อยกล่องใบ 2
+        self._hold_servo(0,   0.3)   # คืนตำแหน่ง (89°)
 
     def _hold_servo(self, angle, duration):
         """ publish มุม servo ซ้ำทุก 0.1s ตลอด duration — คำสั่งแรกหายก็มีตัวถัดไปตาม """

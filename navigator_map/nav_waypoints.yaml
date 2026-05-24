@@ -1,8 +1,8 @@
 waypoints:
 - task: waypoint_1
   type: person
-  x: 0.687
-  y: -0.307
+  x: 0.681
+  y: -0.357
   orientation:
     z: -0.74625
     w: 0.66566
@@ -28,8 +28,8 @@ waypoints:
       w: 0.93998
 - task: waypoint_4
   type: person
-  x: 0.685
-  y: -1.776
+  x: 0.705
+  y: -1.730
   orientation:
     z: 0.5531
     w: 0.83311
