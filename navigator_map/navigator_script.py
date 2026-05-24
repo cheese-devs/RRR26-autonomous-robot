@@ -1,6 +1,7 @@
 import rclpy
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 from geometry_msgs.msg import PoseStamped, Twist
+from nav_msgs.msg import Odometry
 from std_msgs.msg import Bool
 import yaml
 import time
@@ -11,17 +12,34 @@ CLEAR_SETTLE_SEC = 1.0   # หลังเคลียร์ costmap รอ scan
 MAX_NAV_RETRY    = 1     # ลองซ้ำเมื่อ FAILED กี่ครั้ง (รวมแล้ววิ่งสูงสุด 2 รอบ/จุด)
 
 # Watchdog: กฎกรรมการ 6.5.1.2 — ไม่คืบหน้า >10s ถูกบังคับ retry (เสียซูเปอร์บิงโก)
-# ต้อง cancel เองก่อนกรรมการสั่ง เพื่อให้ MAX_NAV_RETRY ของเราทำงานได้
-NO_PROGRESS_TIMEOUT_SEC = 10.0   # distance_remaining ไม่ลดเลยภายในเวลานี้ = ค้าง
-NO_PROGRESS_EPSILON_M   = 0.05   # ลดน้อยกว่านี้ถือว่า "ไม่คืบ"
+# ตั้ง 8s เพื่อให้เหลือ buffer ~2s สำหรับ cancel + clearCostmap + เริ่ม attempt ใหม่
+# ก่อนกรรมการจะนับครบ 10s
+NO_PROGRESS_TIMEOUT_SEC = 8.0
+# "ขยับ" = velocity ใน odom เกินค่านี้ (เชิงเส้น m/s หรือเชิงมุม rad/s)
+# หุ่นถอย/หมุนช้าใน recovery ก็ยังถือว่าไม่ stuck — กฎกรรมการคือ "ไม่คืบหน้า" = ไม่ขยับ
+ODOM_LIN_EPSILON_MPS    = 0.01   # 1 cm/s
+ODOM_ANG_EPSILON_RPS    = 0.05   # ~3 deg/s
 HARD_TIMEOUT_SEC        = 120.0  # ต่อ 1 attempt — กันกรณี feedback ค้าง/edge case
 FEEDBACK_POLL_SEC       = 0.2
+# ใกล้ goal เท่านี้ → skip watchdog (Nav2 หมุนเข้า yaw — distance_remaining จะนิ่ง)
+# ต้อง ≥ xy_goal_tolerance(0.15) + เผื่อจิตเตอร์
+GOAL_APPROACH_DIST_M    = 0.25
 
 class TaskNavigator:
     def __init__(self):
         self.nav = BasicNavigator()
         self.cmd_vel_pub = self.nav.create_publisher(Twist, '/cmd_vel', 10)
         self.detect_pub = self.nav.create_publisher(Bool, '/vision/detect_enable', 10)
+        # Odom velocity สำหรับ watchdog — กฎกรรมการคือ "หุ่นไม่ขยับ"
+        # ใช้ velocity ตรงๆ ครอบคลุมทั้งเดินหน้า/ถอย/หมุน (recovery behavior)
+        self.last_odom_vel = None  # (linear_speed, angular_speed)
+        self.nav.create_subscription(Odometry, '/odom', self._odom_cb, 10)
+
+    def _odom_cb(self, msg):
+        lin = msg.twist.twist.linear
+        ang = msg.twist.twist.angular
+        lin_speed = (lin.x * lin.x + lin.y * lin.y) ** 0.5
+        self.last_odom_vel = (lin_speed, abs(ang.z))
 
     def set_detect(self, enabled):
         msg = Bool(); msg.data = enabled
@@ -100,12 +118,13 @@ def main():
             rclpy.shutdown()
 
 
-def _goto_pose(nav, goal_pose, name):
+def _goto_pose(task_nav, goal_pose, name):
     """ ไป waypoint โดยเคลียร์ 'ผี' ใน costmap ก่อนทุกครั้ง + ลองซ้ำเมื่อ FAILED
 
     clearAllCostmaps() รีเซ็ต obstacle_layer กลับเป็น static map — obstacle ของจริง
     จะถูก scan สดมาร์กกลับเข้ามาใน ~1s แต่มาร์กค้าง/ดริฟต์จาก mislocalization หายไป
     """
+    nav = task_nav.nav
     result = None
     for attempt in range(MAX_NAV_RETRY + 1):
         try:
@@ -122,10 +141,11 @@ def _goto_pose(nav, goal_pose, name):
         goal_pose.header.stamp = nav.get_clock().now().to_msg()
         nav.goToPose(goal_pose)
 
-        # Watchdog A (no-progress) + C (hard timeout)
+        # Watchdog: หุ่นต้อง "ขยับ" (มี velocity ใน odom) ภายใน NO_PROGRESS_TIMEOUT_SEC
+        # ถอย/หมุนช้าใน recovery ก็นับว่าขยับ — กฎกรรมการคือ "ไม่คืบหน้า" = ไม่ขยับ
+        # ไม่เช็ค distance_remaining เพราะ recovery อาจถอยห่าง goal ก่อนวกกลับเข้า
         start_t = time.monotonic()
-        best_dist = float('inf')
-        last_progress_t = start_t
+        last_move_t = start_t
         aborted_by_watchdog = False
         while not nav.isTaskComplete():
             time.sleep(FEEDBACK_POLL_SEC)
@@ -138,15 +158,29 @@ def _goto_pose(nav, goal_pose, name):
                 break
 
             fb = nav.getFeedback()
-            if fb is None:
+            d = fb.distance_remaining if fb is not None else float('inf')
+
+            # ใกล้ goal — Nav2 อาจหมุนเข้า yaw_goal_tolerance ช้ามาก → skip watchdog
+            if d < GOAL_APPROACH_DIST_M:
+                last_move_t = now
                 continue
-            d = fb.distance_remaining
-            if d < best_dist - NO_PROGRESS_EPSILON_M:
-                best_dist = d
-                last_progress_t = now
-            elif now - last_progress_t > NO_PROGRESS_TIMEOUT_SEC:
-                print(f"   [WATCHDOG] {name} ไม่คืบหน้า >{NO_PROGRESS_TIMEOUT_SEC:.0f}s "
-                      f"(distance_remaining={d:.2f}m) — cancel ก่อนกรรมการสั่ง retry")
+
+            vel = task_nav.last_odom_vel
+            if vel is None:
+                # ยังไม่มี /odom — ถือว่าขยับ (กัน watchdog ตายเงียบตอนเพิ่งเริ่ม)
+                moving = True
+            else:
+                lin_speed, ang_speed = vel
+                moving = (lin_speed > ODOM_LIN_EPSILON_MPS
+                          or ang_speed > ODOM_ANG_EPSILON_RPS)
+
+            if moving:
+                last_move_t = now
+            elif now - last_move_t > NO_PROGRESS_TIMEOUT_SEC:
+                lin_s, ang_s = vel if vel is not None else (0.0, 0.0)
+                print(f"   [WATCHDOG] {name} ไม่ขยับ >{NO_PROGRESS_TIMEOUT_SEC:.0f}s "
+                      f"(distance_remaining={d:.2f}m, lin={lin_s:.3f}m/s, "
+                      f"ang={ang_s:.3f}rad/s) — cancel ก่อนกรรมการสั่ง retry")
                 nav.cancelTask()
                 aborted_by_watchdog = True
                 break
@@ -228,7 +262,7 @@ def _run(task_nav, nav):
             ok = True
             for vp in wp.get('via', []):
                 vname = f"จุดคั่นก่อน {wp['task']} ({vp['x']}, {vp['y']})"
-                result = _goto_pose(nav, _make_pose(nav, vp), vname)
+                result = _goto_pose(task_nav, _make_pose(nav, vp), vname)
                 if result != TaskResult.SUCCEEDED:
                     ok = False
                     break
@@ -240,7 +274,7 @@ def _run(task_nav, nav):
                 all_done = False
                 break
 
-            result = _goto_pose(nav, _make_pose(nav, wp), wp['task'])
+            result = _goto_pose(task_nav, _make_pose(nav, wp), wp['task'])
             if result == TaskResult.SUCCEEDED:
                 task_nav.perform_task(wp)
             elif result == TaskResult.CANCELED:
