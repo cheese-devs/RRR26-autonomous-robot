@@ -36,6 +36,7 @@ MAP_YAML = "my_robot_map.yaml"
 OUT_YAML = "nav_waypoints.yaml"
 PX_PER_M = 200  # ใช้เป็น fallback ถ้าคำนวณจากขนาดจอไม่ได้
 SCREEN_MARGIN_PX = 160  # เผื่อ taskbar + toolbar + status
+SNAP_GRID = 0.05  # snap คลิก/เล็ง เป็นช่องละ 5cm (= resolution map)
 
 
 def load_map(yaml_path):
@@ -116,6 +117,11 @@ class Picker:
                             command=self._on_type_change).pack(side="left", padx=2)
 
         ttk.Separator(top, orient="vertical").pack(side="left", fill="y", padx=8)
+        self.snap_var = tk.BooleanVar(value=True)
+        ttk.Checkbutton(top, text="Snap 5cm (g)", variable=self.snap_var).pack(side="left", padx=4)
+        self.root.bind("<Key-g>", lambda e: self.snap_var.set(not self.snap_var.get()))
+
+        ttk.Separator(top, orient="vertical").pack(side="left", fill="y", padx=8)
         ttk.Button(top, text="Undo", command=self.undo).pack(side="left", padx=2)
         ttk.Button(top, text="Clear via", command=self.clear_via).pack(side="left", padx=2)
         ttk.Button(top, text="Save", command=self.save).pack(side="left", padx=2)
@@ -132,6 +138,13 @@ class Picker:
         self.canvas.bind("<Button-3>", lambda e: self.on_click(e, button=3))
         self.canvas.bind("<Motion>", self.on_motion)
 
+        # จุดเล็ง: เส้นกากบาทตามเมาส์ + พิกัดลอย + เส้นยางพรีวิวทิศ
+        self.cross_v = self.canvas.create_line(0, 0, 0, 0, fill="#1e90ff", dash=(3, 3))
+        self.cross_h = self.canvas.create_line(0, 0, 0, 0, fill="#1e90ff", dash=(3, 3))
+        self.cursor_txt = self.canvas.create_text(0, 0, text="", anchor="sw",
+                                                  fill="#0066cc", font=("TkDefaultFont", 9, "bold"))
+        self.rubber = None
+
     def _on_type_change(self):
         self.next_type = self.type_var.get()
         self._update_status()
@@ -146,6 +159,11 @@ class Picker:
         row_from_bottom = self.map_h_px - (cy / self.scale)
         wx = self.ox + col * self.res
         wy = self.oy + row_from_bottom * self.res
+        return wx, wy
+
+    def _snap(self, wx, wy):
+        if self.snap_var.get():
+            return round(wx / SNAP_GRID) * SNAP_GRID, round(wy / SNAP_GRID) * SNAP_GRID
         return wx, wy
 
     def world_to_canvas(self, wx, wy):
@@ -185,13 +203,34 @@ class Picker:
 
     # ---------- event handlers ----------
     def on_motion(self, event):
-        wx, wy = self.canvas_to_world(event.x, event.y)
+        wx, wy = self._snap(*self.canvas_to_world(event.x, event.y))
+        cx, cy = self.world_to_canvas(wx, wy)   # ตำแหน่งหลัง snap (เล็งล็อกช่อง)
+        # เส้นเล็งกากบาท + พิกัดลอยข้างเคอร์เซอร์
+        self.canvas.coords(self.cross_v, cx, 0, cx, self.canvas_h)
+        self.canvas.coords(self.cross_h, 0, cy, self.canvas_w, cy)
+        self.canvas.coords(self.cursor_txt, cx + 10, cy - 6)
+        self.canvas.itemconfig(self.cursor_txt, text=f"{wx:+.2f}, {wy:+.2f}")
+        for cid in (self.cross_v, self.cross_h, self.cursor_txt):
+            self.canvas.tag_raise(cid)
+        # เส้นยางพรีวิวทิศ ตอนรอคลิก heading
+        if self.pending is not None:
+            cx1, cy1 = self.world_to_canvas(self.pending[1], self.pending[2])
+            if self.rubber is None:
+                self.rubber = self.canvas.create_line(cx1, cy1, cx, cy,
+                                                      fill="#ff8c00", width=2, arrow="last")
+            else:
+                self.canvas.coords(self.rubber, cx1, cy1, cx, cy)
+            self.canvas.tag_raise(self.rubber)
+        elif self.rubber is not None:
+            self.canvas.delete(self.rubber)
+            self.rubber = None
         self.status.config(text=f"world: x={wx:+.3f}  y={wy:+.3f}   |  "
                                 f"type ถัดไป=[{self.next_type}]  wp={len(self.waypoints)}  via buffer={len(self.via_buffer)}"
                                 + (f"  | รอคลิก heading ของ {self.pending[0]}" if self.pending else ""))
 
     def on_click(self, event, button):
-        wx, wy = self.canvas_to_world(event.x, event.y)
+        wx, wy = self._snap(*self.canvas_to_world(event.x, event.y))
+        scx, scy = self.world_to_canvas(wx, wy)   # ตำแหน่ง marker หลัง snap
         print(f"click button={button} canvas=({event.x},{event.y}) world=({wx:.3f},{wy:.3f})", flush=True)
 
         if self.pending is not None:
@@ -199,6 +238,9 @@ class Picker:
             yaw = math.atan2(wy - y1, wx - x1)
             pose = pose_dict(x1, y1, yaw)
             self.pending = None
+            if self.rubber is not None:          # ลบเส้นยางพรีวิวทิศ
+                self.canvas.delete(self.rubber)
+                self.rubber = None
             if kind == "wp":
                 self._finalize_waypoint(pose)
             else:
@@ -209,13 +251,13 @@ class Picker:
         if button == 1:
             self.pending = ("wp", wx, wy)
             r = 5
-            ids = [self.canvas.create_oval(event.x - r, event.y - r, event.x + r, event.y + r,
+            ids = [self.canvas.create_oval(scx - r, scy - r, scx + r, scy + r,
                                            fill="red", outline="")]
             self.artists.append(("pending", ids))
         elif button == 3:
             self.pending = ("via", wx, wy)
             r = 5
-            ids = [self.canvas.create_rectangle(event.x - r, event.y - r, event.x + r, event.y + r,
+            ids = [self.canvas.create_rectangle(scx - r, scy - r, scx + r, scy + r,
                                                 fill="orange", outline="")]
             self.artists.append(("pending", ids))
         self._update_status()
