@@ -6,8 +6,14 @@
 >
 > หุ่นยนต์กู้ภัยอัตโนมัติ 4 ล้อ ที่สร้างแผนที่สนามเอง วิ่งหาผู้ประสบภัยเอง ระบุตัวด้วย AprilTag และปล่อยกล่องชิงชีพ — **ทำงานเองทั้งหมด ไม่มีการบังคับระหว่างรอบแข่ง**
 
-🏆 **Result / ผลการแข่ง:** RRR26 RoboRescue (30–31 May 2026) — **passed every round / ผ่านทุกรอบ**
-Vision recognition **100% accuracy**, zero navigation failures, clean servo dispensing.
+## 🥈 1st Runner-up — National Championship / รองชนะเลิศอันดับ 1 ระดับประเทศ
+
+**Robo Rescue with micro-ROS** — TPA Robot Thailand Championship 2026 (ส.ส.ท.–สพฐ. ยุวชน ครั้งที่ 26), competing for **HRH Princess Maha Chakri Sirindhorn's Royal Trophy** · 30–31 May 2026, Bangkok.
+
+🥈 รางวัล **รองชนะเลิศอันดับ 1** การแข่งขันหุ่นยนต์ ส.ส.ท. ชิงแชมป์ประเทศไทย ประจำปี 2569 ชิงถ้วยพระราชทานสมเด็จพระกนิษฐาธิราชเจ้า กรมสมเด็จพระเทพรัตนราชสุดาฯ สยามบรมราชกุมารี
+
+> **Team PSPray** · Prajaksilapakarn School / ทีม PSPray · โรงเรียนประจักษ์ศิลปาคาร
+> Passed every round · vision recognition **100% accuracy** · zero navigation failures · clean servo dispensing.
 
 ---
 
