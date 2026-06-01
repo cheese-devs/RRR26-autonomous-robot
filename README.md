@@ -80,6 +80,12 @@ A 3-phase pipeline, each phase a self-contained module I built and can run indep
 </p>
 <p align="center"><i>Left: arena mapped autonomously via SLAM · Right: mission waypoints planned on that map<br>ซ้าย: แผนที่สนามที่หุ่นสร้างเองด้วย SLAM · ขวา: waypoint ภารกิจที่วางบนแผนที่</i></p>
 
+### ⭐ Highlight — custom waypoint editor (praised by the judges) / เครื่องมือทำ waypoint ที่กรรมการชม
+
+Most teams record waypoints by physically driving the robot to each spot and capturing its pose. I built a faster way — [`pick_waypoints.py`](navigator_map/pick_waypoints.py): **click straight on the SLAM map and get the world coordinate instantly.** It converts the clicked pixel to a real-world `(x, y)` using the map's `resolution` + `origin`; a second click sets the robot's heading (yaw → quaternion). **Right-click drops `via` points** to shape the path through the tight U-shaped survivor pockets, and every point can be dragged (or Shift-dragged to re-aim). It loads an existing `nav_waypoints.yaml` so you can keep editing. **The competition judges singled out this click-to-coordinate + via-point tool as a standout.**
+
+ทีมส่วนใหญ่เก็บ waypoint ด้วยการขับหุ่นไปทีละจุดแล้ว capture pose จริง — แต่ผมทำให้เร็วกว่าด้วย [`pick_waypoints.py`](navigator_map/pick_waypoints.py): **คลิกบนแผนที่ SLAM แล้วได้พิกัดโลกทันที** (แปลง pixel → `(x, y)` จาก `resolution` + `origin` ของแผนที่, คลิกที่ 2 กำหนดทิศหุ่น → quaternion), **คลิกขวาเพื่อวาง `via` point** จัดเส้นทางเข้ามุมแคบของ survivor pocket ได้, ลาก/Shift-ลากแก้จุดได้ และโหลดไฟล์เดิมมาแก้ต่อได้ — **กรรมการชมเครื่องมือ "คลิกได้พิกัด + ทำ via" ตัวนี้เป็นพิเศษ**
+
 ### Architecture / สถาปัตยกรรม
 
 ```
@@ -138,7 +144,7 @@ The core of the autonomy stack — all written by me. Click to read:
 | [`navigator_map/navigator_script.py`](navigator_map/navigator_script.py) | Mission controller — drives the waypoint sequence, software watchdog, timeout/cancel-retry recovery, emergency stop | 403 |
 | [`navigator_map/mission_script.py`](navigator_map/mission_script.py) | Per-waypoint logic — vote-based AprilTag confirmation + 2-strike servo dispenser gating | 226 |
 | [`navigator_map/Cam_Pose_AprilTag.py`](navigator_map/Cam_Pose_AprilTag.py) | Vision node — AprilTag (tag36h11) detection on the ESP32 stream, gated by `/vision/detect_enable` | 88 |
-| [`navigator_map/pick_waypoints.py`](navigator_map/pick_waypoints.py) | Interactive Tkinter tool to click waypoints on the map → `nav_waypoints.yaml` | 547 |
+| [`navigator_map/pick_waypoints.py`](navigator_map/pick_waypoints.py) | ⭐ **Judges' favourite** — Tkinter tool: click waypoints + via points on the map → `nav_waypoints.yaml` (see ⭐ highlight in System Overview) | 547 |
 | [`navigator_map/nav2_launch.py`](navigator_map/nav2_launch.py) | Nav2 bring-up — costmaps, AMCL, DWB controller, static TF | 81 |
 | [`start_up_robot/watchdog.py`](start_up_robot/watchdog.py) | Real-time camera / IMU / battery health monitor during bring-up | 119 |
 
