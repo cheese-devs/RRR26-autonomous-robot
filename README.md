@@ -16,6 +16,11 @@
 > Passed every round · vision recognition **100% accuracy** · zero navigation failures · clean servo dispensing.
 
 <p align="center">
+  <img src="navigator_map/docs/photos/autonomous_run.gif" width="40%" alt="The robot autonomously navigating the arena and approaching a survivor pocket on race day">
+  <br><i>🎥 Race-day autonomous run — the robot self-navigates to a walled survivor pocket (no human control)<br>หุ่นวิ่งอัตโนมัติวันแข่งจริง — เข้าหา survivor pocket เอง ไม่มีการบังคับ</i>
+</p>
+
+<p align="center">
   <img src="navigator_map/docs/photos/award_runnerup.jpg" width="70%" alt="Team PSPray receiving the 1st Runner-up trophy and award for Robo Rescue with micro-ROS">
   <br><i>Team PSPray with the 1st Runner-up trophy — Robo Rescue with micro-ROS, Diamond Hall<br>ทีม PSPray รับถ้วยรองชนะเลิศอันดับ 1 — Robo Rescue with micro-ROS</i>
 </p>
