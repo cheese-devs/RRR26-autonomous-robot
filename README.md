@@ -13,7 +13,7 @@
 🥈 รางวัล **รองชนะเลิศอันดับ 1** การแข่งขันหุ่นยนต์ ส.ส.ท. ชิงแชมป์ประเทศไทย ประจำปี 2569 ชิงถ้วยพระราชทานสมเด็จพระกนิษฐาธิราชเจ้า กรมสมเด็จพระเทพรัตนราชสุดาฯ สยามบรมราชกุมารี
 
 > **Team PSPray** · Prajaksilapakarn School / ทีม PSPray · โรงเรียนประจักษ์ศิลปาคาร
-> Passed every round · vision recognition **100% accuracy** · zero navigation failures · clean servo dispensing.
+> Passed every round · **100%** vision-recognition accuracy · zero navigation failures · clean servo dispensing.
 
 <p align="center">
   <img src="navigator_map/docs/photos/autonomous_run.gif" width="40%" alt="The robot autonomously navigating the arena and approaching a survivor pocket on race day">
@@ -31,11 +31,11 @@
 
 **Sole software developer** — I designed and wrote the entire autonomy stack myself: SLAM mapping, Nav2 navigation tuning, the computer-vision node, the mission state machine, the servo dispenser logic, and all bring-up/diagnostic tooling.
 
-ผมเป็น **ผู้พัฒนาซอฟต์แวร์หลักเพียงคนเดียว** — ออกแบบและเขียนระบบอัตโนมัติทั้งหมดด้วยตัวเอง ตั้งแต่ระบบสร้างแผนที่ (SLAM), การจูน Nav2, โหนด computer vision, state machine ของภารกิจ, ตรรกะ servo ปล่อยกล่อง ไปจนถึงเครื่องมือ bring-up/diagnostic ทุกตัว
+ผมเป็น **ผู้พัฒนาซอฟต์แวร์เพียงคนเดียวของทีม** — ออกแบบและเขียนระบบอัตโนมัติทั้งหมดด้วยตัวเอง ตั้งแต่ระบบสร้างแผนที่ (SLAM), การจูน Nav2, โหนด computer vision, state machine ของภารกิจ, ตรรกะ servo ปล่อยกล่อง ไปจนถึงเครื่องมือ bring-up/diagnostic ทุกตัว
 
 <p align="center">
   <img src="navigator_map/docs/photos/team_pit_debug.jpg" width="42%" alt="Team debugging the robot and code at the competition pit">
-  <br><i>Final tuning at the pit — micro-ROS-X robot + live debugging on race day<br>จูนระบบหน้างานที่พิต — ดีบักโค้ดสดวันแข่ง</i>
+  <br><i>Final tuning at the pit — microROS-X robot + live debugging on race day<br>จูนระบบหน้างานที่พิต — ดีบักโค้ดสดวันแข่ง</i>
 </p>
 
 ---
@@ -48,7 +48,7 @@
 | **Computer Vision** | Real-time AprilTag (tag36h11) detection node on an ESP32 camera stream, with a vote-based warm-up gate that confirmed survivor IDs in **2.5 s, 100% of the time** |
 | **Distributed Systems** | Robot runs **micro-ROS (DDS-XRCE) over Wi-Fi UDP**, bridged into the ROS 2 graph via a Dockerized agent — the robot itself never runs ROS 2 |
 | **Mission Control** | Interactive waypoint mission engine with software watchdog, timeout-based recovery, and a 2-strike servo dispenser for delivering aid boxes |
-| **Engineering Rigor** | Log-driven verification, fallback strategies for every failure mode, per-WiFi reconfiguration tooling, full post-mortem documentation |
+| **Engineering Rigor** | Log-driven verification, fallback strategies for every failure mode, per-Wi-Fi reconfiguration tooling, full post-mortem documentation |
 
 ---
 
@@ -144,7 +144,7 @@ The core of the autonomy stack — all written by me. Click to read:
 | [`navigator_map/navigator_script.py`](navigator_map/navigator_script.py) | Mission controller — drives the waypoint sequence, software watchdog, timeout/cancel-retry recovery, emergency stop | 403 |
 | [`navigator_map/mission_script.py`](navigator_map/mission_script.py) | Per-waypoint logic — vote-based AprilTag confirmation + 2-strike servo dispenser gating | 226 |
 | [`navigator_map/Cam_Pose_AprilTag.py`](navigator_map/Cam_Pose_AprilTag.py) | Vision node — AprilTag (tag36h11) detection on the ESP32 stream, gated by `/vision/detect_enable` | 88 |
-| [`navigator_map/pick_waypoints.py`](navigator_map/pick_waypoints.py) | ⭐ **Judges' favourite** — Tkinter tool: click waypoints + via points on the map → `nav_waypoints.yaml` (see ⭐ highlight in System Overview) | 547 |
+| [`navigator_map/pick_waypoints.py`](navigator_map/pick_waypoints.py) | ⭐ **Judges' favorite** — Tkinter tool: click waypoints + via points on the map → `nav_waypoints.yaml` (see ⭐ highlight in System Overview) | 547 |
 | [`navigator_map/nav2_launch.py`](navigator_map/nav2_launch.py) | Nav2 bring-up — costmaps, AMCL, DWB controller, static TF | 81 |
 | [`start_up_robot/watchdog.py`](start_up_robot/watchdog.py) | Real-time camera / IMU / battery health monitor during bring-up | 119 |
 
