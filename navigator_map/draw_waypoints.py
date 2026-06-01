@@ -2,6 +2,12 @@
 # -*- coding: utf-8 -*-
 """วาด waypoint ปัจจุบันจาก nav_waypoints.yaml ทับบนแผนที่ my_robot_map.pgm
 ผลลัพธ์: docs/wp_overlay.png
+
+เส้นทาง: วาด 2 เส้นซ้อนกัน
+  - เส้นบาง (จาง) = เส้นฉากที่กรอกใน YAML (planned, แค่ช่วยมอง)
+  - เส้นโค้งหนา   = ประมาณการเส้นที่ "หุ่นจริงวิ่ง" — คัตมุมตาม xy_goal_tolerance
+    (หุ่นนับว่าถึง via เมื่อเข้าใกล้ในระยะ TOL จึงตัดมุมโค้งแทนหักฉาก +
+     use_rotate_to_heading:False ทำให้ไม่หมุนอยู่กับที่ → ลื่นเข้าโค้ง)
 """
 import math
 import yaml
@@ -16,6 +22,34 @@ MAP_PGM = "my_robot_map.pgm"
 MAP_YAML = "my_robot_map.yaml"
 WP_YAML = sys.argv[1] if len(sys.argv) > 1 else "nav_waypoints.yaml"
 OUT = sys.argv[2] if len(sys.argv) > 2 else "docs/wp_overlay.png"
+TOL = 0.15   # = xy_goal_tolerance ใน prarams/dwb_nav_params.yaml (ระยะคัตมุมโดยประมาณ)
+
+
+def rounded_path(pts, r):
+    """แปลง polyline หักฉาก -> เส้นโค้งคัตมุม (quadratic Bézier ที่แต่ละมุมใน)
+    r = ระยะดึงกลับจากมุมตามแต่ละ segment (≈ tolerance ที่หุ่นนับว่าถึง via)
+    """
+    if len(pts) < 3:
+        return [p[0] for p in pts], [p[1] for p in pts]
+    P = [np.array(p, float) for p in pts]
+    xs, ys = [P[0][0]], [P[0][1]]
+    for i in range(1, len(P) - 1):
+        a, c, b = P[i - 1], P[i], P[i + 1]   # มุมที่ c
+        va, vb = a - c, b - c
+        la, lb = np.hypot(*va), np.hypot(*vb)
+        if la < 1e-6 or lb < 1e-6:
+            continue
+        # ดึงกลับไม่เกินครึ่ง segment กันโค้งล้นทับมุมข้างเคียง
+        da = min(r, la / 2.0)
+        db = min(r, lb / 2.0)
+        p_in = c + va / la * da     # จุดเข้าโค้ง
+        p_out = c + vb / lb * db    # จุดออกโค้ง
+        xs.append(p_in[0]); ys.append(p_in[1])
+        for t in np.linspace(0, 1, 12):   # Bézier กำลังสอง: in -> c(control) -> out
+            q = (1 - t) ** 2 * p_in + 2 * (1 - t) * t * c + t ** 2 * p_out
+            xs.append(q[0]); ys.append(q[1])
+    xs.append(P[-1][0]); ys.append(P[-1][1])
+    return xs, ys
 
 # โหลด map
 with open(MAP_YAML) as f:
@@ -62,7 +96,11 @@ for i, wp in enumerate(wps):
     pts.append((x, y))
     px = [p[0] for p in pts]
     py = [p[1] for p in pts]
-    ax.plot(px, py, "--", color=c, lw=1.2, alpha=0.7, zorder=2)
+    # เส้นฉาก planned (จาง บาง) — เทียบกับเส้นโค้ง
+    ax.plot(px, py, ":", color=c, lw=0.8, alpha=0.35, zorder=2)
+    # เส้นโค้งคัตมุม = ประมาณการที่หุ่นจริงวิ่ง
+    cx, cy = rounded_path(pts, TOL)
+    ax.plot(cx, cy, "-", color=c, lw=1.8, alpha=0.85, zorder=2)
 
     # จุด waypoint
     ax.plot(x, y, "o", color=c, ms=14, zorder=5,
@@ -85,10 +123,12 @@ legend = [
     Line2D([0], [0], marker="o", color="w", markerfacecolor="tab:red", ms=11, label="person"),
     Line2D([0], [0], marker="o", color="w", markerfacecolor="tab:green", ms=11, label="HOME"),
     Line2D([0], [0], marker="x", color="gray", ms=9, mew=2, ls="", label="via"),
+    Line2D([0], [0], color="gray", lw=1.8, label="approx real (corner-cut)"),
+    Line2D([0], [0], color="gray", lw=0.8, ls=":", label="planned (square)"),
 ]
 ax.legend(handles=legend, loc="upper right", fontsize=9)
 
-ax.set_title("Current waypoints (nav_waypoints.yaml) over map", fontsize=12)
+ax.set_title(f"Waypoints — curve = real robot (cut {TOL*100:.0f}cm), dotted = square plan", fontsize=11)
 ax.set_xlabel("x (m)")
 ax.set_ylabel("y (m)")
 ax.set_xlim(xmin, xmax)

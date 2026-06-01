@@ -16,9 +16,16 @@ MAX_NAV_RETRY    = 1     # ลองซ้ำเมื่อ FAILED กี่ค
 # วิธีกัน: ถอยออกจากซอกด้วย Nav2 BackUp behavior (collision-aware) ก่อนสั่ง goToPose จุดถัดไป
 # 0.20m พอตรงทฤษฎี แต่จริงไม่พ้นซอก U → 0.30m พอออกแต่ไม่ชนกำแพงหลัง (หลังขยับ WP เข้า 5cm)
 # เคยใช้ 0.50m แต่ชนกำแพงด้านหลังของซอกหลังขยับ WP1/WP4 เข้า 5cm → BackUp FAILED → ติดในซอก
+# speed 0.05→0.12: ที่ 0.05 ถอย 0.60m ต้องใช้ 12s แต่ติด time_allowance 8s → ถอยได้แค่ ~0.40m
+# (ไม่พ้นซอกจริงตามที่ตั้งใจ) ที่ 0.12 ถอยครบ 0.60m ใน 5s — เร็วขึ้น + ถอยครบ collision-aware กันชน
 POCKET_BACKUP_DIST_M       = 0.60
-POCKET_BACKUP_SPEED_MPS    = 0.05
+POCKET_BACKUP_SPEED_MPS    = 0.12
 POCKET_BACKUP_TIMEOUT_SEC  = 8
+
+# Retry recovery: attempt 1 อาจพาหุ่นเข้าซอกแคบจน DWB ค้าง — ถอยสั้นๆ ก่อน plan ใหม่
+# 0.30m พอดึงออกจากจุดติดโดยไม่ไปไกลจน plan ใหม่อ้อมเยอะ
+RETRY_BACKUP_DIST_M       = 0.30
+RETRY_BACKUP_TIMEOUT_SEC  = 5
 
 # Watchdog: กฎกรรมการ 6.5.1.2 — ไม่คืบหน้า >10s ถูกบังคับ retry (เสียซูเปอร์บิงโก)
 # ตั้ง 8s เพื่อให้เหลือ buffer ~2s สำหรับ cancel + clearCostmap + เริ่ม attempt ใหม่
@@ -101,14 +108,26 @@ class TaskNavigator:
         print("[STOP] sent zero /cmd_vel — robot halted")
 
     def run_external_script(self, wp_type):
-        """ รันสคริปต์ภารกิจและรอจนเสร็จ — ส่ง type (person/tag) ให้เป็น argv """
+        """ รันสคริปต์ภารกิจและรอจนเสร็จ — ส่ง type (person/tag) ให้เป็น argv
+
+        timeout=12s ครอบ worst case ของลูก:
+          startup ~2s + MISSION_TIMEOUT_SEC 8.5s + cleanup ~1s = ~11.5s + buffer
+        เกิน timeout → subprocess ส่ง SIGKILL ฆ่าลูก พ่อหลุดไป WP ถัดไป
+        ถ้าไม่มี timeout: ลูกค้างก่อน timer ในตัวสร้าง (rclpy.init / DDS) → block ตลอดไป
+        → หุ่นนิ่ง >10s กรรมการสั่ง retry เสียซูเปอร์บิงโก
+        """
         script_path = "mission_script.py"
         print(f"   -> กำลังเริ่มรันสคริปต์ภารกิจ: {script_path} (type={wp_type})")
-        
+
         try:
-            # รันสคริปต์และรอ (Wait) จนกว่ากระบวนการจะจบ
-            subprocess.run(["python3", "-u", script_path, wp_type], check=True)
+            subprocess.run(
+                ["python3", "-u", script_path, wp_type],
+                check=True,
+                timeout=12.0,
+            )
             print("   -> ภารกิจในสคริปต์เสร็จสิ้นแล้ว")
+        except subprocess.TimeoutExpired:
+            print(f"   -> [TIMEOUT] mission_script ค้าง >12s — ฆ่าทิ้ง ข้าม WP ไปต่อ")
         except subprocess.CalledProcessError as e:
             print(f"   -> [ERROR] สคริปต์ภารกิจทำงานผิดพลาด: {e}")
         except FileNotFoundError:
@@ -120,7 +139,7 @@ class TaskNavigator:
         # ตรวจสอบว่าชื่อ waypoint ใช่ "HOME" หรือไม่ (ตัวเล็กตัวใหญ่มีผล)
         if waypoint_name.upper() == "HOME":
             print(f"--- ถึงจุด {waypoint_name}: ทำการ Reset ระบบและหยุดรอ ---")
-            time.sleep(2)
+            time.sleep(0.5)  # กลับถึงบ้านแล้วไม่ต้องรอนาน — ประหยัดเวลา 5 นาที
         else:
             wp_type = wp.get('type')
             if wp_type not in ('person', 'tag'):
@@ -129,14 +148,22 @@ class TaskNavigator:
                       f"(person/tag) → ข้ามภารกิจ ---")
             else:
                 print(f"--- ถึงจุด {waypoint_name}: เริ่มภารกิจ (type={wp_type}) ---")
-                self.set_detect(True)
-                time.sleep(0.5)  # ให้ cam รับ enable + เริ่ม publish topic
+                # person mode ปล่อย servo ทันทีโดยไม่ดูกล้อง → ไม่ต้องเปิด detect
+                # เปิด AprilTag เฉพาะ tag waypoint (vision node ไม่มี detector อื่นแล้ว)
+                use_detect = (wp_type == 'tag')
+                if use_detect:
+                    self.set_detect(True)
+                    time.sleep(0.5)  # ให้ cam รับ enable + เริ่ม publish topic
                 try:
                     self.run_external_script(wp_type)
                 finally:
-                    self.set_detect(False)
-                # หลัง mission หุ่นอาจติดลึกในซอก U → ถอยออกก่อน goToPose จุดถัดไป
-                self.exit_pocket()
+                    if use_detect:
+                        self.set_detect(False)
+                # ถอยออกจากซอกเฉพาะ person — wp person อยู่ในซอก U survivor zone
+                # (กำแพง 3 ด้าน) หุ่นปล่อยกล่องแล้วต้องถอยก่อน plan จุดถัดไป ไม่งั้น DWB ค้าง
+                # tag อยู่ที่โล่งกว่า planner เดินออกได้เลย → ข้าม BackUp ประหยัด ~5s/จุด
+                if wp_type == 'person':
+                    self.exit_pocket()
 
         print(f"--- เสร็จสิ้นภารกิจที่ {waypoint_name} ---\n")
 def main():
@@ -169,6 +196,23 @@ def _goto_pose(task_nav, goal_pose, name):
     nav = task_nav.nav
     result = None
     for attempt in range(MAX_NAV_RETRY + 1):
+        # ก่อน retry: ถอยสั้นๆ ด้วย Nav2 BackUp (collision-aware) — ถ้า attempt ก่อนหน้า
+        # พาหุ่นเข้าซอกแคบจน DWB หา trajectory ไม่ได้ ดึงออกก่อน plan ใหม่
+        # ด้านหลังมีกำแพง → BackUp จะ refuse คืน FAILED → fall-through ไป clearCostmaps ต่อ
+        if attempt > 0:
+            try:
+                accepted = nav.backup(
+                    backup_dist=RETRY_BACKUP_DIST_M,
+                    backup_speed=POCKET_BACKUP_SPEED_MPS,
+                    time_allowance=RETRY_BACKUP_TIMEOUT_SEC,
+                )
+                if accepted is not False:
+                    print(f"   ถอย {RETRY_BACKUP_DIST_M:.2f}m ก่อน retry...")
+                    while not nav.isTaskComplete():
+                        time.sleep(0.1)
+            except Exception as e:
+                print(f"   [!] backup ก่อน retry error: {e} — ข้าม")
+
         try:
             nav.clearAllCostmaps()
         except Exception as e:
@@ -282,15 +326,24 @@ def _run(task_nav, nav):
         print("="*30)
         
         # รับค่า Input
-        user_input = input("\nระบุลำดับการวิ่ง (เช่น 3,1,2) หรือกด 0 เพื่อเลิก: ")
-        
+        # ใส่ ! ต่อท้ายเลขได้ (เช่น 5!) = ไป waypoint นั้นตรงๆ ข้าม via — ใช้กับ HOME
+        # เป็นหลัก เวลาหุ่นอยู่ใกล้ทางกลับแล้วไม่ต้องอ้อมผ่าน via 3 จุดของ HOME
+        user_input = input("\nระบุลำดับการวิ่ง (เช่น 3,1,2 | ใส่ ! ข้าม via เช่น 5!) หรือกด 0 เพื่อเลิก: ")
+
         if user_input.strip() == '0':
             print("ปิดโปรแกรม...")
             break
-        
+
         try:
-            order_indices = [int(x.strip()) - 1 for x in user_input.split(',') if x.strip()]
-            planned_waypoints = [all_waypoints[i] for i in order_indices]
+            # แต่ละ token: เลข (1-based) + เครื่องหมาย ! ท้ายแปลว่าข้าม via
+            planned_waypoints = []  # list ของ (wp, skip_via)
+            for tok in user_input.split(','):
+                tok = tok.strip()
+                if not tok:
+                    continue
+                skip_via = tok.endswith('!')
+                idx = int(tok.rstrip('!').strip()) - 1
+                planned_waypoints.append((all_waypoints[idx], skip_via))
         except (ValueError, IndexError):
             print("[!] ใส่ตัวเลขไม่ถูกต้อง กรุณาลองใหม่")
             continue
@@ -299,10 +352,14 @@ def _run(task_nav, nav):
         print(f"\nเริ่มการเดินทางทั้งหมด {len(planned_waypoints)} จุด...")
         
         all_done = True  # False ถ้ามี waypoint ถูกยกเลิก/ไปไม่ถึง
-        for wp in planned_waypoints:
+        for wp, skip_via in planned_waypoints:
             # จุดคั่น (via) ถ้ามี — วิ่งผ่านก่อนโดยไม่สแกนภารกิจ
+            # skip_via (เลขมี ! ต่อท้าย) = ข้าม via วิ่งตรงไป waypoint เลย
             ok = True
-            for vp in wp.get('via', []):
+            via_list = [] if skip_via else wp.get('via', [])
+            if skip_via and wp.get('via'):
+                print(f"[ลัด] {wp['task']}: ข้าม via {len(wp['via'])} จุด — วิ่งตรง")
+            for vp in via_list:
                 vname = f"จุดคั่นก่อน {wp['task']} ({vp['x']}, {vp['y']})"
                 result = _goto_pose(task_nav, _make_pose(nav, vp), vname)
                 if result != TaskResult.SUCCEEDED:
@@ -310,23 +367,29 @@ def _run(task_nav, nav):
                     break
             if not ok:
                 if result == TaskResult.CANCELED:
+                    # ผู้ใช้ Ctrl+C / SIGTERM — หยุดทั้งแผน
                     print(f"ภารกิจไป {wp['task']} ถูกยกเลิก")
-                else:
-                    print(f"ไปจุดคั่นก่อน {wp['task']} ไม่ได้ — ลองซ้ำครบแล้ว")
+                    all_done = False
+                    break
+                # via fail → ข้าม WP นี้ ไปต่อ WP ถัดไป (ไม่ทิ้งทั้งแผน)
+                # เสีย WP เดียวดีกว่าเสีย WP ที่เหลือทั้งหมด + ซูเปอร์บิงโก
+                print(f"ไปจุดคั่นก่อน {wp['task']} ไม่ได้ — ข้าม WP นี้ ไปต่อ")
                 all_done = False
-                break
+                continue
 
             result = _goto_pose(task_nav, _make_pose(nav, wp), wp['task'])
             if result == TaskResult.SUCCEEDED:
                 task_nav.perform_task(wp)
             elif result == TaskResult.CANCELED:
+                # ผู้ใช้ Ctrl+C / SIGTERM — หยุดทั้งแผน
                 print(f"ภารกิจไป {wp['task']} ถูกยกเลิก")
                 all_done = False
                 break
             else:  # FAILED (หรือ None) — ลองซ้ำครบโควต้าแล้วยังไม่ถึง
-                print(f"ไม่สามารถไปถึง {wp['task']} ได้ (อาจมีสิ่งกีดขวาง) — ลองซ้ำครบแล้ว")
+                # ข้าม WP นี้ ไปต่อ WP ถัดไป — รักษาคะแนน WP อื่น + โอกาสซูเปอร์บิงโก
+                print(f"ไม่สามารถไปถึง {wp['task']} ได้ — ข้าม WP นี้ ไปต่อ")
                 all_done = False
-                break
+                continue
 
         if all_done:
             print("\n[SUCCESS] วิ่งครบตามแผนงานแล้ว!")

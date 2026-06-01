@@ -1,53 +1,89 @@
 waypoints:
 - task: waypoint_1
-  type: person
-  x: 0.681
-  y: -0.357
+  x: 0.85
+  y: 0.0
   orientation:
-    z: -0.74625
-    w: 0.66566
+    z: -0.78821
+    w: 0.61541
+  type: tag
 - task: waypoint_2
-  type: tag
-  x: 1.615
-  y: -0.51
+  x: 1.95
+  y: -0.5
   orientation:
-    z: -0.0467
-    w: 0.99891
-- task: waypoint_3
-  type: tag
-  x: 2.538
-  y: -1.416
-  orientation:
-    z: 0.96993
-    w: 0.24337
-  via:
-  - x: 2.477
-    y: 0.07
-    orientation:
-      z: -0.34123
-      w: 0.93998
-- task: waypoint_4
+    z: 0.0
+    w: 1.0
   type: person
-  x: 0.705
-  y: -1.730
-  orientation:
-    z: 0.5531
-    w: 0.83311
   via:
-  - x: 2.672
-    y: -2.06
+  - x: 0.9
+    y: 0.0
     orientation:
-      z: 0.9357
-      w: -0.35279
+      z: 0.0
+      w: 1.0
+  - x: 1.5
+    y: 0.0
+    orientation:
+      z: -0.70711
+      w: 0.70711
+  - x: 1.5
+    y: -0.55
+    orientation:
+      z: 0.0
+      w: 1.0
+- task: waypoint_3
+  x: 2.6
+  y: -1.9
+  orientation:
+    z: 0.99399
+    w: 0.1095
+  type: tag
+  via:
+  - x: 1.5
+    y: -0.55
+    orientation:
+      z: -0.70711
+      w: 0.70711
+  - x: 1.55
+    y: -1.0
+    orientation:
+      z: 0.0
+      w: 1.0
+  - x: 2.6
+    y: -1.0
+    orientation:
+      z: -0.70711
+      w: 0.70711
+- task: waypoint_4
+  x: 0.75
+  y: -1.85
+  orientation:
+    z: 0.70711
+    w: 0.70711
+  type: person
+  via:
+  - x: 2.55
+    y: -2.2
+    orientation:
+      z: 1.0
+      w: 0.0
+  - x: 0.75
+    y: -2.25
+    orientation:
+      z: 0.70711
+      w: 0.70711
 - task: HOME
-  x: 0.06
-  y: 0.017
+  x: -0.15
+  y: 0.1
   orientation:
-    z: -0.00603
-    w: 0.99998
+    z: 0.75897
+    w: 0.65113
   via:
-  - x: 0.143
-    y: -2.051
+  - x: 0.75
+    y: -2.175
     orientation:
-      z: 0.74039
-      w: 0.67218
+      z: 1.0
+      w: 0.0
+  - x: 0.2
+    y: -2.175
+    orientation:
+      z: 0.75897
+      w: 0.65113

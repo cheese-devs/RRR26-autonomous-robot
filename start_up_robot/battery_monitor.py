@@ -15,19 +15,21 @@ class BatteryMonitor(Node):
 
     def cb(self, msg):
         v = msg.data / 10.0
-        if msg.data < 74 and not self.warned:
+        # หุ่นตัวนี้ IMU เริ่มเอ๋อ/หมุนเองตั้งแต่ ~7.8-7.9V (สูงกว่า cutoff ทางไฟฟ้ามาก)
+        # เตือนที่ 8.0V เพื่อให้เปลี่ยนแบตทันก่อน yaw drift
+        if msg.data < 80 and not self.warned:
             self.warned = True
-            print(f'WARNING: แบตต่ำกว่า 7.4V! ({v}V)', flush=True)
+            print(f'WARNING: แบตต่ำกว่า 8.0V! ({v}V) — IMU จะเริ่มเอ๋อ เปลี่ยนแบตด่วน', flush=True)
             display = os.environ.get('DISPLAY', ':0')
             subprocess.Popen(
-                ['notify-send', '-u', 'critical', 'แบตต่ำ!', f'แบตเหลือ {v}V (ต่ำกว่า 7.4V)', '--icon=battery-caution'],
+                ['notify-send', '-u', 'critical', 'แบตต่ำ!', f'แบตเหลือ {v}V (ต่ำกว่า 8.0V) — IMU จะเอ๋อ', '--icon=battery-caution'],
                 env={**os.environ, 'DISPLAY': display}
             )
             beep_msg = Int32()
             beep_msg.data = 1000
             for _ in range(3):
                 self.pub_beep.publish(beep_msg)
-        elif msg.data >= 74:
+        elif msg.data >= 80:
             self.warned = False
 
 rclpy.init()

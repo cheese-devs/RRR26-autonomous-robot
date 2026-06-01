@@ -2,18 +2,26 @@ import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Int32, String
 from geometry_msgs.msg import Twist
-from yahboomcar_msgs.msg import PointArray
 from collections import Counter
 import sys
 import time
 
 ROTATE_SPEED = 0.15  # rad/s — ช้าพอให้กล้องจับ frame ทัน (~8.6°/s)
 WARMUP_SEC   = 2.5   # หน้าต่างยืนนิ่งสแกน "หลังท่อ ROS ต่อติดแล้ว" ก่อนเริ่มหมุน
-LINK_TIMEOUT_SEC = 8.0  # เพดานรอ DDS discovery — ถ้าเกินนี้เริ่มสแกนเลย กันค้าง
-WARMUP_VOTE_MIN = 5   # เฟรม AprilTag ขั้นต่ำในหน้าต่าง warmup ถึงจะเชื่อผลโหวต
+LINK_TIMEOUT_SEC = 3.0  # เพดานรอ DDS discovery — Cam_Pose รันก่อนนานแล้ว discovery ปกติ <1s
+                        # ตั้ง 3s กัน worst case ทะลุกฎ 10s กรรมการ
+WARMUP_VOTE_MIN = 3   # เฟรม AprilTag ขั้นต่ำในหน้าต่าง warmup ถึงจะเชื่อผลโหวต
+                      # ลด 5→3: ถ้า tag อยู่ใน FOV ตั้งแต่ warmup ให้จบเร็ว เก็บ budget ให้ WP อื่น
+                      # โหวต most_common ยังกัน false positive ได้
 SPIN_VOTE_MIN   = 10  # เฟรม AprilTag ขั้นต่ำตอนหมุน ถึงจะหยุดแล้วโหวต
 SERVO_HOLD_SEC  = 1.0 # เวลาค้างมุม servo แต่ละท่า (เตะลง / คืนตำแหน่ง)
 SERVO_LINK_SEC  = 3.0 # เพดานรอ node servo จับคู่ publisher ก่อนสั่งเตะ
+MISSION_TIMEOUT_SEC = 11.0  # เพดานเวลาทั้ง mission (link+warmup+spin) ก่อนยอมแพ้
+                           # 8.5→11: ดันเกินเพดาน 10s — ถามกรรมการแล้ว ได้ (หุ่นหมุนหา tag = ยังขยับ
+                           # ไม่นับว่า "ไม่คืบหน้า >10s" ตามกฎ 6.5.1 ที่หมายถึงหุ่นนิ่งสนิท)
+                           # ให้หมุนเก็บ tag ที่อยู่นอก FOV เริ่มต้นได้ครบกว่า
+                           # worst case (LINK 3 + WARMUP 2.5) เหลือ spin 5.5s (~47°)
+                           # ปกติ LINK <1s → spin ~7s (~60°)
 
 class MissionScanner(Node):
     """ หลังถึง waypoint: รับ type (person/tag) จาก argv → เปิด detector ตัวเดียว
@@ -28,31 +36,67 @@ class MissionScanner(Node):
         self.pub_cmd   = self.create_publisher(Twist, '/cmd_vel', 10)
         self.pub_servo = self.create_publisher(Int32, '/servo_s1', 10)
 
-        # เปิด subscription แค่ detector ที่ตรงกับ type ของ waypoint นี้
-        # กันไม่ให้ person detector ไป servo drop ใส่คนเดินผ่านที่ tag waypoint
-        if mode == 'person':
-            self.sub_pose = self.create_subscription(
-                PointArray, '/mediapipe/points', self.pose_callback, 10)
-        else:  # 'tag'
-            self.sub_tag = self.create_subscription(
-                String, '/vision/latest_at_id', self.tag_callback, 10)
-
         self.found = False
         self.spin_timer = None
-        self.tag_votes = []  # เก็บ ID ทุกเฟรมที่เห็น tag → จบ warmup ค่อยโหวตเสียงข้างมาก
+        self.tag_votes = []  # ใช้เฉพาะ tag mode
+
+        # Person mode: YAML รู้แล้วว่าจุดนี้มีคน — ปล่อยกล่องทันทีไม่ต้อง detect
+        # กติกาให้คะแนน "ปล่อยกล่องเข้ากรอบแดง" ไม่ได้บังคับ "ต้องตรวจเจอคนก่อน"
+        # ตัดความเสี่ยง MediaPipe miss + หมุนวน >10s โดนกรรมการ restart
+        if mode == 'person':
+            self.kick_timer = self.create_timer(0.05, self._person_drop_immediately)
+            return
+
+        # Tag mode: ต้องอ่าน ID จริงเพราะ ID เปลี่ยนทุกรอบแข่ง
+        self.sub_tag = self.create_subscription(
+            String, '/vision/latest_at_id', self.tag_callback, 10)
 
         self.spin_twist = Twist()
         self.spin_twist.angular.z = ROTATE_SPEED
 
-        # node นี้เพิ่งเกิดใหม่ (subprocess) — sub ยังไม่ match กับ publisher ของกล้อง
-        # DDS discovery กินเวลา ~1-3s ถ้านับ warmup เลยตอนนี้ ข้อมูลที่กล้องส่งมา
-        # ช่วงท่อยังไม่ติดจะหล่นทิ้งหมด → poll จนกล้อง match ครบ ค่อยเริ่มนับ warmup
+        # node นี้เพิ่งเกิดใหม่ (subprocess) — รอ DDS discovery ของ tag publisher
         self.warmup_timer = None
-        self._link_topic = ('/mediapipe/points' if mode == 'person'
-                            else '/vision/latest_at_id')
+        self._link_topic = '/vision/latest_at_id'
         self._link_deadline = time.time() + LINK_TIMEOUT_SEC
         self.link_timer = self.create_timer(0.1, self._check_link)
+
+        # Mission timeout — กันหมุนวน >10s กรรมการเรียก restart (กฎ 6.5.1)
+        # ถ้าเกินเพดาน: ใช้โหวตที่มี (ถ้ามี) ส่งออก แล้วข้ามไป WP ถัดไป
+        self.mission_timeout_timer = self.create_timer(
+            MISSION_TIMEOUT_SEC, self._on_mission_timeout)
+
         self.get_logger().info(f"รอท่อ ROS ({self._link_topic}) ต่อติด...")
+
+    def _person_drop_immediately(self):
+        """ Person mode: ปล่อยกล่องทันที — YAML รู้แล้วว่าจุดนี้มีคน """
+        self.kick_timer.cancel()
+        if self.found:
+            return
+        self.found = True
+        self.get_logger().info("[PERSON] YAML ระบุมีคน → ปล่อย servo ทันที (ข้าม detection)")
+        self._drop_servo()
+        self.get_logger().info("servo เสร็จ ปิดโปรแกรม...")
+        raise SystemExit
+
+    def _on_mission_timeout(self):
+        """ Tag mode: หมดเวลา — หยุดหุ่นก่อนกรรมการนับครบ 10s
+        ใช้โหวตที่เก็บได้ (ถ้ามี) ส่งออก ดีกว่าไม่มีอะไรเลย แม้ confidence ต่ำ
+        """
+        self.mission_timeout_timer.cancel()
+        if self.found:
+            return
+        self.found = True
+        self._stop_wheels()
+        if self.tag_votes:
+            tag_id, votes = Counter(self.tag_votes).most_common(1)[0]
+            print(f"[AprilTag] ID: {tag_id}")
+            self.get_logger().warn(
+                f"timeout {MISSION_TIMEOUT_SEC}s — เดา ID: {tag_id} "
+                f"({votes}/{len(self.tag_votes)} เฟรม low confidence)")
+        else:
+            self.get_logger().warn(
+                f"timeout {MISSION_TIMEOUT_SEC}s — อ่าน tag ไม่เจอเลย ข้าม WP")
+        raise SystemExit
 
     def _check_link(self):
         """ poll จนกล้อง publish topic ของ detector ที่ใช้ ถูก discover ค่อยเปิดสแกน """
@@ -113,16 +157,6 @@ class MissionScanner(Node):
         for _ in range(5):
             self.pub_cmd.publish(zero)
             time.sleep(0.05)
-
-    def pose_callback(self, msg):
-        if self.found or len(msg.points) == 0:
-            return
-        self.found = True
-        self.get_logger().info(f"เจอคน ({len(msg.points)} landmarks) → servo drop")
-        self._stop_wheels()
-        self._drop_servo()
-        self.get_logger().info("servo เสร็จ ปิดโปรแกรม...")
-        raise SystemExit
 
     def _drop_servo(self):
         """ สั่ง servo เตะ — รอ subscriber + ส่งซ้ำ กัน DDS discovery race / QoS drop

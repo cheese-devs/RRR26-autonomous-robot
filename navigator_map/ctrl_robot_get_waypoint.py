@@ -40,6 +40,8 @@ Special Actions:
     b : Clear via buffer
     f : Force-save (bypass AMCL covariance check)
     a : Print AMCL status
+    r : REPLACE waypoint เฉพาะตัว → กด r แล้วตามด้วย 1-9 (=waypoint_N) หรือ 0 (=HOME)
+        แก้เฉพาะ x/y/orientation, preserve type+via เดิม
 
 ** BEFORE RECORDING **
   1) วางหุ่นที่ origin หันหน้า +x ก่อน launch nav2
@@ -96,6 +98,7 @@ class Yahboom_Keyboard(Node):
         self.servo_busy = False
         self.waypoints = [] # เก็บ Waypoints
         self.via_buffer = [] # buffer ของ via points รอผูกเข้า waypoint ถัดไป
+        self.replace_pending = False # state: รอเลขเลือก waypoint ที่จะแทน
         
         self.dist_front = 10.0
         self.dist_back  = 10.0
@@ -280,7 +283,78 @@ class Yahboom_Keyboard(Node):
             return
 
         self.via_buffer = []
+        # sync ของใน memory ให้ตรง disk — ถ้าผู้ใช้กดเซฟต่อจะได้ไม่ทับของที่เพิ่ง attach
+        self.waypoints = wps
         print(f"\n[ATTACH] ผูก via×{n} เข้ากับ HOME แล้ว — waypoint อื่นคงเดิม")
+
+    def replace_waypoint(self, idx, force=False):
+        """ แทนที่พิกัดของ waypoint ที่มีอยู่แล้วใน yaml
+            idx: 0 = HOME, 1-9 = waypoint_N
+            preserve: task, type, via — แก้แค่ x/y/orientation
+        """
+        if not force:
+            ok, reason = self.amcl_ready()
+            if not ok:
+                print(f"\n[REJECT replace] {reason}")
+                return
+
+        # โหลด yaml ปัจจุบัน
+        try:
+            with open('nav_waypoints.yaml', 'r') as f:
+                data = yaml.safe_load(f) or {}
+        except FileNotFoundError:
+            print("\n[ERROR] ไม่พบ nav_waypoints.yaml — ยังไม่มีอะไรให้แทน")
+            return
+        except Exception as e:
+            print(f"\n[ERROR] โหลด yaml ไม่ได้: {e}")
+            return
+
+        wps = data.get('waypoints', []) or []
+        target_task = 'HOME' if idx == 0 else f'waypoint_{idx}'
+        target = next((w for w in wps if w.get('task', '').upper() == target_task.upper()), None)
+        if target is None:
+            print(f"\n[ERROR] ไม่เจอ '{target_task}' ใน yaml")
+            return
+
+        # warmup ให้ AMCL settle ก่อนอ่าน TF
+        print(f"\n[warmup] หยุดนิ่ง {WARMUP_SEC:.1f}s ให้ AMCL settle...", end='', flush=True)
+        self.pub.publish(Twist())
+        t0 = time.time()
+        while time.time() - t0 < WARMUP_SEC:
+            rclpy.spin_once(self, timeout_sec=0.05)
+        print(" done")
+
+        try:
+            now = rclpy.time.Time()
+            trans = self.tf_buffer.lookup_transform('map', 'base_link', now,
+                                                    timeout=rclpy.duration.Duration(seconds=0.2))
+            pos = trans.transform.translation
+            ori = trans.transform.rotation
+
+            old_x, old_y = target.get('x'), target.get('y')
+            target['x'] = round(pos.x, 3)
+            target['y'] = round(pos.y, 3)
+            target['orientation'] = {
+                'z': round(ori.z, 5),
+                'w': round(ori.w, 5),
+            }
+
+            with open('nav_waypoints.yaml', 'w') as f:
+                yaml.dump({'waypoints': wps}, f, sort_keys=False)
+
+            # sync memory ให้ตรง disk
+            self.waypoints = wps
+
+            kept = []
+            if 'type' in target:
+                kept.append(f"type={target['type']}")
+            if 'via' in target:
+                kept.append(f"via×{len(target['via'])}")
+            kept_msg = f" — preserve {', '.join(kept)}" if kept else ""
+            print(f"\n[REPLACE] {target_task}: ({old_x},{old_y}) → ({target['x']},{target['y']}){kept_msg}")
+
+        except Exception as e:
+            print(f"\n[ERROR] อ่าน TF ไม่ได้: {e}")
 
     def play_warning_sound(self):
         current_time = time.time()
@@ -328,11 +402,24 @@ def main():
             rclpy.spin_once(node, timeout_sec=0.01)
             key = node.getKey()
 
+            # --- replace mode: ดักเลขก่อน handler ปกติ ---
+            # หลังกด 'r' รอบนึง คีย์ถัดไปที่เป็นเลข = แทน waypoint นั้น
+            # คีย์อื่นที่ไม่ใช่ '' = ยกเลิก replace mode
+            if node.replace_pending and key != '':
+                if key in '0123456789':
+                    node.replace_waypoint(int(key))
+                    node.replace_pending = False
+                    key = ''  # consume กัน handler อื่นทำซ้ำ
+                else:
+                    print("\n[REPLACE] ยกเลิก")
+                    node.replace_pending = False
+                    # ปล่อย key ให้ handler อื่นทำงานต่อ
+
             # --- ตรวจสอบปุ่มกดพิเศษ ---
             if key == 'p':
                 if not node.servo_busy:
                     threading.Thread(target=node.run_servo_sequence).start()
-            
+
             elif key == 's': # กด s เพื่อเซฟตำแหน่ง (ไม่มี type)
                 node.save_waypoint()
             elif key == '1': # save type=person
@@ -341,6 +428,9 @@ def main():
                 node.save_waypoint(wp_type='tag')
             elif key == '0': # save HOME
                 node.save_waypoint(is_home=True)
+            elif key == 'r': # เข้า replace mode → รอเลขเลือก waypoint
+                node.replace_pending = True
+                print("\n[REPLACE] กด 1-9 = แทน waypoint_N, 0 = แทน HOME, อื่นๆ = ยกเลิก")
             elif key == 'v': # buffer via point
                 node.buffer_via()
             elif key == 'b': # clear via buffer
@@ -382,9 +472,9 @@ def main():
                 target_linear, is_blocked = 0.0, True
 
             if th > 0 and node.dist_left < node.safety_limit:
-                target_linear, is_blocked = 0.0, True
+                target_angular, is_blocked = 0.0, True
             elif th < 0 and node.dist_right < node.safety_limit:
-                target_linear, is_blocked = 0.0, True
+                target_angular, is_blocked = 0.0, True
                 
             if is_blocked:
                 node.play_warning_sound()

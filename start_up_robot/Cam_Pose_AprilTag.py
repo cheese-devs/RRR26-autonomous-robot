@@ -65,9 +65,20 @@ class MY_Picture(Node):
         self.fps = 0
 
     def handleTopic(self, msg):
-        # 1. รับภาพและปรับขนาด
-        frame = self.bridge.compressed_imgmsg_to_cv2(msg)
-        frame = cv.resize(frame, (640, 480))
+        # 1. รับภาพและปรับขนาด — กัน JPEG เสียจาก UDP fragment (ทิ้ง frame เสีย ไม่ให้ node ตาย)
+        try:
+            frame = self.bridge.compressed_imgmsg_to_cv2(msg)
+        except Exception as e:
+            self.get_logger().warn(f"decode JPEG ล้มเหลว ข้าม frame: {e}")
+            return
+        if frame is None or frame.size == 0:
+            self.get_logger().warn("frame ว่าง/เสีย ข้าม")
+            return
+        try:
+            frame = cv.resize(frame, (640, 480))
+        except cv.error as e:
+            self.get_logger().warn(f"resize ล้มเหลว ข้าม frame: {e}")
+            return
         gray = cv.cvtColor(frame, cv.COLOR_BGR2GRAY)
         	
         # 3. ตรวจจับ AprilTag (อัปเดตค่าล่าสุด)

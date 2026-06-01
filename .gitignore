@@ -1,11 +1,18 @@
+# Python
 __pycache__/
 *.pyc
 *.pyo
 
-# Competition docs
-*.pdf
+# Backup files
+*.bak
+*.bak_*
+*.pgm.bak_*
 
 # Run logs
 navigator_map/logs/
 navigator_map/run.log
+*.log
 
+# Claude Code local settings
+**/.claude/settings.local.json
+**/.claude/*.lock

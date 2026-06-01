@@ -3,8 +3,8 @@
 # รันได้จาก path ไหนก็ได้ — cd เข้า directory ของสคริปต์เสมอ
 cd "$(dirname "$0")" || exit 1
 
-# วันแข่งปิด RViz เพื่อลด CPU (หุ่นวิ่ง autonomous ไม่ต้องดูภาพ)
-# ซ้อม/ดีบั๊ก localization (เช่นใช้ปุ่ม 2D Pose Estimate) ให้สั่ง: OPEN_RVIZ=true ./run_all_mission.sh
+# ปิด RViz เป็น default (วันแข่ง — ลด CPU)
+# ถ้าจะซ้อม/ดีบั๊ก localization (เช่นใช้ปุ่ม 2D Pose Estimate) ให้สั่ง: OPEN_RVIZ=true ./run_all_mission.sh
 OPEN_RVIZ="${OPEN_RVIZ:-false}"
 
 # Launch Navigation 2
