@@ -217,31 +217,7 @@ Controller:
 
 ---
 
-## 8. ตัวอย่างโค้ดเบื้องต้น (`code_basic/`)
-
-สคริปต์ทดสอบสั้น ๆ สำหรับเรียนรู้ทีละ topic:
-
-| ไฟล์ | ทดสอบ |
-|---|---|
-| `test_cmd_vel.py` | publish `/cmd_vel` หมุน 0.5 rad/s 10 วิ แล้วหยุด |
-| `test_beep.py` | publish `/beep` |
-| `test_drop.py` | publish `/servo_s1` ปล่อยของ |
-
-> `test_humanDetection.py` (subscribe `/mediapipe/points`) **เลิกใช้แล้ว** — runtime ถอด MediaPipe ออก, topic ไม่มีอีกต่อไป
-
----
-
-## 9. Firmware
-
-ใน `firmware/`:
-- `microROS_Robot_2025_3.bin` (ใหม่)
-- `microROS_Robot_V2.1.0.bin`
-
-ขั้นตอนการ flash อ้างอิงจากสไลด์ `Appendix 1 - Firmware Update.pptx`
-
----
-
-## 10. Vision Pipeline
+## 8. Vision Pipeline
 
 ```
 ESP32 Camera ─► /espRos/esp32camera ─► Cam_Pose_AprilTag.py
@@ -256,7 +232,7 @@ ESP32 Camera ─► /espRos/esp32camera ─► Cam_Pose_AprilTag.py
 
 ---
 
-## 11. Mission Logic (ค่าเริ่มต้น)
+## 9. Mission Logic (ค่าเริ่มต้น)
 
 `navigator_script.py` + `mission_script.py` ทำงานร่วมกันแบบนี้:
 
@@ -280,7 +256,7 @@ ESP32 Camera ─► /espRos/esp32camera ─► Cam_Pose_AprilTag.py
 
 ---
 
-## 12. จุดที่ต้องระวัง (Gotchas)
+## 10. จุดที่ต้องระวัง (Gotchas)
 
 1. **โฟลเดอร์ `prarams/`** — สะกดผิดในโค้ดจริง (`prarams` ไม่ใช่ `params`) อย่าเปลี่ยนชื่อข้างเดียว
 2. **Relative path** — launch files ใช้ `os.path.abspath()` กับ CWD ต้องรันจากในโฟลเดอร์เฟสนั้น ๆ
@@ -293,20 +269,7 @@ ESP32 Camera ─► /espRos/esp32camera ─► Cam_Pose_AprilTag.py
 
 ---
 
-## 13. คอร์สเอกสาร (.pptx)
-
-| ไฟล์ | เนื้อหา |
-|---|---|
-| 0. microROS Robot Introduction | แนะนำหุ่นและระบบโดยรวม |
-| 1.1 / 1.2 / 1.3 | การติดตั้ง (VM Yahboom / ISO INEX / WiFi Camera) |
-| 2. microROS Agent Connection | ตั้งค่า + เชื่อม Agent |
-| 3. LiDAR Course | การใช้ LiDAR |
-| Appendix 1 | Firmware update |
-| B1–B4 | คอร์สพื้นฐาน Python / ROS2 / ROS2-Python / Linux |
-
----
-
-## 14. คำสั่งที่ใช้บ่อย
+## 11. คำสั่งที่ใช้บ่อย
 
 ```bash
 # ตรวจว่าหุ่นเชื่อมต่อ ROS graph ได้แล้ว
