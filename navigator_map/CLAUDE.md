@@ -97,4 +97,3 @@ One venue template `config_robot_RRR26.py` — edit SSID/password/agent-IP place
 | `docs/RRR26.pdf` | competition rules |
 | `docs/KNOWLEDGE.md` | tutorial-style write-up of the whole pipeline |
 | `docs/RACE_LESSONS_RRR26.md` | บทเรียนวันแข่งจริง (ผ่านทุกรอบ) + เช็กลิสต์ก่อนสตาร์ท |
-| `docs/รูปเรียน/` | Nav2 learning screenshots (architecture, DWB, costmap, AMCL) |
