@@ -25,6 +25,10 @@
   <br><i>Team PSPray with the 1st Runner-up trophy — Robo Rescue with micro-ROS, Diamond Hall<br>ทีม PSPray รับถ้วยรองชนะเลิศอันดับ 1 — Robo Rescue with micro-ROS</i>
 </p>
 
+> 🌏 **Qualified to represent at RoboCup Junior 2026** (international championship, Incheon, South Korea · 30 Jun – 6 Jul 2026) — this placement earned our team a spot at the international stage.
+>
+> 🌏 **ได้สิทธิ์เป็นตัวแทนไปแข่งระดับนานาชาติ RoboCup Junior 2026** (เมืองอินชอน เกาหลีใต้ · 30 มิ.ย. – 6 ก.ค. 2026) — ผลรองชนะเลิศอันดับ 1 ทำให้ทีมได้สิทธิ์ก้าวสู่เวทีระดับโลก
+
 ---
 
 ## 👤 My Role / บทบาท
