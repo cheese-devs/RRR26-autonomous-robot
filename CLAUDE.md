@@ -30,7 +30,7 @@ cd start_up_robot
 ./start_agent_computer.sh           # docker micro-ROS agent, port 8090 (robot base)
 ./start_Camera_computer.sh          # docker micro-ROS agent, port 9999 (ESP32 cam)
 ./check_robot.sh                    # 3 windows: cam viewer + teleop + vision check
-python3 config_robot_<wifi>.py      # one-time over USB: SSID, agent IP, PID, domain id
+python3 config_robot_RRR26.py       # one-time over USB: SSID, agent IP, PID, domain id (edit placeholders first)
 python3 watchdog.py                 # real-time camera/IMU/battery status
 ```
 
@@ -57,9 +57,9 @@ bash diag.sh 2>&1 | tee diag_out.txt  # live /scan //odom /tf health when "Extra
 
 For Nav2-specific architecture (waypoint flow, mission_script gating, Nav2 params, AMCL hard rules, footprint vs `robot_radius` decision, `via:` waypoints, etc.) read **`navigator_map/CLAUDE.md`** — it is the source of truth for the runtime stack. `navigator_map/docs/KNOWLEDGE.md` has a deeper tutorial-style write-up of the whole pipeline; `navigator_map/docs/RRR26.pdf` holds the official rules.
 
-## Per-WiFi robot configs
+## Robot config (over USB-serial)
 
-`start_up_robot/` has one `config_robot_*.py` per WiFi network the robot has been pre-flashed for: `config_robot_RRR26.py`, `config_robot_RRR26.py`, `config_robot_RRR26.py`, `config_robot_RRR26.py`. Competition requires the venue's 2.4 GHz WiFi — pick the matching config or write a new one (copy + edit SSID/password/agent IP). Domain ID must match between robot config and host `ROS_DOMAIN_ID` (default 99).
+`start_up_robot/config_robot_RRR26.py` is the one venue template. Before a session, edit the 3 placeholders at the bottom (`__main__`): WiFi SSID + password (venue's 2.4 GHz), agent IP (host PC on that network, `hostname -I`), and `set_car_type`. The repo ships these as `<SSID>`/`<PASSWORD>`/`[0,0,0,0]` placeholders — real per-network values are never committed. Domain ID must match between robot config and host `ROS_DOMAIN_ID` (default 99).
 
 ## Gotchas
 

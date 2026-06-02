@@ -107,9 +107,8 @@
 - Motor PID: 1, 0.2, 0.2
 - IMU YAW PID: 1, 0, 0.2
 
-**ในโปรเจกต์นี้:** มี config แยกตามเครือข่าย WiFi ใน `start_up_robot/`:
-`config_robot_RRR26.py`, `config_robot_RRR26.py`, `config_robot_RRR26.py`,
-`config_robot_RRR26.py` — เลือกใช้ตาม WiFi ปัจจุบัน (กติกาแข่งต้อง 2.4 GHz ของผู้จัด)
+**ในโปรเจกต์นี้:** มี template เดียว `start_up_robot/config_robot_RRR26.py` —
+แก้ placeholder SSID/password/agent-IP ให้ตรง WiFi ที่ใช้ก่อนรันทุกครั้ง (กติกาแข่งต้อง 2.4 GHz ของผู้จัด)
 
 ---
 

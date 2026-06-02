@@ -82,7 +82,7 @@
 
 6. **ปิด-เปิดสวิตช์หุ่น** ให้ค่าใหม่มีผล
 
-> 💡 ถ้าใช้ WiFi อื่น (ไม่ใช่สนาม) มี config สำเร็จไว้แล้ว: `config_robot_RRR26.py`, `config_robot_RRR26.py`, ฯลฯ เลือกตัวที่ตรง WiFi
+> 💡 ใช้ WiFi อื่น/วงอื่น: แก้ placeholder SSID/password/agent-IP ใน `config_robot_RRR26.py` ให้ตรงวงนั้น (หรือ copy ไฟล์ไปตั้งชื่อใหม่)
 
 ---
 

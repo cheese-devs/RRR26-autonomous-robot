@@ -1,7 +1,7 @@
 import socket
 import time
 
-staip = "<REDACTED-IP>" #填写开启dotcker后信息的ip地址
+staip = "0.0.0.0"  # TODO: ใส่ IP เครื่อง host PC (agent) — หรือพิมพ์ตอนรัน (input ด้านล่าง)
 PORT = 8888
 
 vflip_OFF = "@vflip:0@"     #不倒转 

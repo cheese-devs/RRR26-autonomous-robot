@@ -79,7 +79,7 @@ AMCL has `set_initial_pose: true` seeded at (0,0,0). **Hard rule:** physically p
 
 ## Robot configs (sibling `start_up_robot/`)
 
-Per-WiFi-network Python configs: `config_robot_RRR26.py`, `config_robot_RRR26.py`, `config_robot_RRR26.py`, `config_robot_RRR26.py`. Competition rules require the venue's 2.4 GHz WiFi — pick the matching config. micro-ROS agent runs in Docker via `start_agent_computer.sh` (port 8090) / `start_Camera_computer.sh` (port 9999).
+One venue template `config_robot_RRR26.py` — edit SSID/password/agent-IP placeholders before each session (competition rules require the venue's 2.4 GHz WiFi). micro-ROS agent runs in Docker via `start_agent_computer.sh` (port 8090) / `start_Camera_computer.sh` (port 9999).
 
 ## Files reference
 
