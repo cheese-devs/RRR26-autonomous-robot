@@ -4,7 +4,7 @@
 
 > Autonomous 4-wheel rescue robot that maps an unknown arena, self-navigates to survivors, identifies them by tag, and dispenses aid — **end-to-end with no human control during the run.**
 >
-> หุ่นยนต์กู้ภัยอัตโนมัติ 4 ล้อ ที่สร้างแผนที่สนามเอง วิ่งหาผู้ประสบภัยเอง ระบุตัวด้วย AprilTag และปล่อยกล่องชิงชีพ — **ทำงานเองทั้งหมด ไม่มีการบังคับระหว่างรอบแข่ง**
+> หุ่นยนต์กู้ภัยอัตโนมัติ 4 ล้อ ที่สร้างแผนที่สนามเอง วิ่งหาผู้ประสบภัยเอง ระบุตัวด้วย AprilTag และปล่อยกล่องยังชีพ — **ทำงานเองทั้งหมด ไม่มีการบังคับระหว่างรอบแข่ง**
 
 ## 🥈 1st Runner-up — National Championship / รองชนะเลิศอันดับ 1 ระดับประเทศ
 
