@@ -41,6 +41,9 @@ OUT_YAML = "nav_waypoints.yaml"
 PX_PER_M = 200  # ใช้เป็น fallback ถ้าคำนวณจากขนาดจอไม่ได้
 SCREEN_MARGIN_PX = 160  # เผื่อ taskbar + toolbar + status
 SNAP_GRID = 0.05  # snap คลิก/เล็ง เป็นช่องละ 5cm (= resolution map)
+ARROW_LEN_M = 0.20        # ความยาวลูกศรทิศหุ่น (world meter) ตอนวาด marker
+MARKER_RADIUS_PX = 6      # รัศมี dot ของ marker ที่วางแล้ว (canvas px)
+PENDING_RADIUS_PX = 5     # รัศมี dot ของจุด pending (รอคลิก heading)
 
 
 def load_map(yaml_path):
@@ -300,13 +303,13 @@ class Picker:
 
         if button == 1:
             self.pending = ("wp", wx, wy)
-            r = 5
+            r = PENDING_RADIUS_PX
             ids = [self.canvas.create_oval(scx - r, scy - r, scx + r, scy + r,
                                            fill="red", outline="")]
             self.artists.append(("pending", ids))
         elif button == 3:
             self.pending = ("via", wx, wy)
-            r = 5
+            r = PENDING_RADIUS_PX
             ids = [self.canvas.create_rectangle(scx - r, scy - r, scx + r, scy + r,
                                                 fill="orange", outline="")]
             self.artists.append(("pending", ids))
@@ -347,10 +350,9 @@ class Picker:
 
     def _draw_arrow(self, wx, wy, yaw, color, label=None):
         cx, cy = self.world_to_canvas(wx, wy)
-        L_world = 0.20
-        cx2, cy2 = self.world_to_canvas(wx + L_world * math.cos(yaw), wy + L_world * math.sin(yaw))
+        cx2, cy2 = self.world_to_canvas(wx + ARROW_LEN_M * math.cos(yaw), wy + ARROW_LEN_M * math.sin(yaw))
         ids = []
-        r = 6
+        r = MARKER_RADIUS_PX
         ids.append(self.canvas.create_oval(cx - r, cy - r, cx + r, cy + r, fill=color, outline=""))
         ids.append(self.canvas.create_line(cx, cy, cx2, cy2, fill=color, width=2, arrow="last"))
         if label:
@@ -366,9 +368,8 @@ class Picker:
     def _reposition_arrow(self, ids, wx, wy, yaw):
         # ขยับ artist เดิม (oval, line, [text]) ไปตำแหน่งใหม่ — ไม่สร้าง id ใหม่
         cx, cy = self.world_to_canvas(wx, wy)
-        L_world = 0.20
-        cx2, cy2 = self.world_to_canvas(wx + L_world * math.cos(yaw), wy + L_world * math.sin(yaw))
-        r = 6
+        cx2, cy2 = self.world_to_canvas(wx + ARROW_LEN_M * math.cos(yaw), wy + ARROW_LEN_M * math.sin(yaw))
+        r = MARKER_RADIUS_PX
         self.canvas.coords(ids[0], cx - r, cy - r, cx + r, cy + r)
         self.canvas.coords(ids[1], cx, cy, cx2, cy2)
         if len(ids) >= 3:
@@ -445,8 +446,7 @@ class Picker:
             self.via_buffer = []
         self.waypoints.append(wp)
 
-        yaw = math.atan2(2 * pose["orientation"]["z"] * pose["orientation"]["w"],
-                         1 - 2 * pose["orientation"]["z"] ** 2)
+        yaw = self._pose_yaw(pose)
         color = self.TYPE_COLORS[self.next_type]
         ids = self._draw_arrow(pose["x"], pose["y"], yaw, color, label=task)
         self.artists.append(("wp", ids))
@@ -460,8 +460,7 @@ class Picker:
             for cid in self.artists.pop()[1]:
                 self.canvas.delete(cid)
         self.via_buffer.append(pose)
-        yaw = math.atan2(2 * pose["orientation"]["z"] * pose["orientation"]["w"],
-                         1 - 2 * pose["orientation"]["z"] ** 2)
+        yaw = self._pose_yaw(pose)
         ids = self._draw_arrow(pose["x"], pose["y"], yaw, "orange")
         self.artists.append(("via", ids))
         self.markers.append({"kind": "via", "ids": ids, "pose": pose})

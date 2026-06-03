@@ -88,7 +88,7 @@ class MissionScanner(Node):
         self.found = True
         self._stop_wheels()
         if self.tag_votes:
-            tag_id, votes = Counter(self.tag_votes).most_common(1)[0]
+            tag_id, votes = self._majority_tag()
             print(f"[AprilTag] ID: {tag_id}")
             self.get_logger().warn(
                 f"timeout {MISSION_TIMEOUT_SEC}s — เดา ID: {tag_id} "
@@ -130,13 +130,17 @@ class MissionScanner(Node):
         self.get_logger().info(
             f"สแกนนิ่งไม่เจอเป้า → หมุน {ROTATE_SPEED} rad/s")
 
+    def _majority_tag(self):
+        """ ID ที่โหวตบ่อยสุด + จำนวนโหวต จากทุกเฟรมที่เก็บมา (ต้องมี vote อย่างน้อย 1) """
+        return Counter(self.tag_votes).most_common(1)[0]
+
     def _decide_tag(self):
         """ โหวต ID ที่เห็นบ่อยสุดจากทุกเฟรมที่เก็บมา — กันเฟรมเบลอ/อ่านพลาด """
         if self.found:
             return
         self.found = True
         self._stop_wheels()
-        tag_id, votes = Counter(self.tag_votes).most_common(1)[0]
+        tag_id, votes = self._majority_tag()
         print(f"[AprilTag] ID: {tag_id}")
         self.get_logger().info(
             f"เจอ AprilTag ID: {tag_id} (โหวต {votes}/{len(self.tag_votes)} เฟรม) ปิดโปรแกรม...")
