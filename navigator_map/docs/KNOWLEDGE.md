@@ -264,7 +264,7 @@ ESP32 Camera ─► /espRos/esp32camera ─► Cam_Pose_AprilTag.py
 4. **ไม่ใช่ ROS package** — ไม่มี `setup.py`/`package.xml` รันด้วย path ตรง ๆ
 5. **Servo เป็น pulse** — `-90` เตะลงแล้วตามด้วย `0` คืนตำแหน่ง; ต้อง **publish ซ้ำทุก 0.1s** ตลอดช่วง hold (1.0s ต่อมุม) ไม่งั้น DDS discovery race จะกินคำสั่งแรกหาย
 6. **ภาษาไทยใน comments/prints** — รักษาภาษาเดิมเวลาแก้
-7. **Domain ID ต้องตรงกัน** — host PC ต้อง `export ROS_DOMAIN_ID=99` ให้ตรงกับที่ตั้งไว้ในหุ่น
+7. **Domain ID ต้องตรงกัน** — host PC ต้อง `export ROS_DOMAIN_ID=20` ให้ตรงกับที่ตั้งไว้ในหุ่น
 8. **ต้อง copy map ข้ามเฟส** — `my_robot_map.yaml/.pgm` ที่ save จาก slam_map ต้องเอาไปวางใน navigator_map ก่อนรัน Nav2
 
 ---

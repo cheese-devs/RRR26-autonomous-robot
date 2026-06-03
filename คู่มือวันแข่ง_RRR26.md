@@ -69,7 +69,7 @@
    ```python
    robot.set_wifi_config("ชื่อ_WiFi_สนาม", "รหัสผ่าน")     # ← แก้
    robot.set_udp_config([0,0,0,0], 8090)         # ← IP ของ PC
-   robot.set_ros_domain_id(99)                              # ← ตรงกับ PC
+   robot.set_ros_domain_id(20)                              # ← ตรงกับ PC
    ```
    > ⚠️ **DOMAIN_ID ต้องตรงกับ PC** ไม่งั้นคุยกันไม่รู้เรื่อง
    > เช็ค PC: `echo $ROS_DOMAIN_ID`

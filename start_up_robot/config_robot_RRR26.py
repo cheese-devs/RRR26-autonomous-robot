@@ -502,7 +502,7 @@ if __name__ == '__main__':
     # 2) Agent IP : IP ของ host PC บนเครือข่ายสนาม
     #              เช็คด้วย `hostname -I` หรือ `ip a | grep inet`
     # 3) Domain ID: ให้ตรงกับ ROS_DOMAIN_ID ของ host
-    #              เช็คด้วย `echo $ROS_DOMAIN_ID` (default repo = 99)
+    #              เช็คด้วย `echo $ROS_DOMAIN_ID` (default repo = 20)
     #
     # ขั้นตอน:
     #   - เสียบ USB-serial หุ่น (ถ้า /dev/ttyUSB0 ไม่โผล่ → purge brltty)
