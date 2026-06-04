@@ -162,7 +162,6 @@ The parts of the autonomy stack I wrote or substantially reworked, built on inex
 I documented the full system for reproducibility and handoff — a habit I consider part of good engineering:
 
 - [`navigator_map/CLAUDE.md`](navigator_map/CLAUDE.md) — Nav2 runtime architecture (source of truth)
-- [`navigator_map/docs/KNOWLEDGE.md`](navigator_map/docs/KNOWLEDGE.md) — deep-dive tutorial of the whole pipeline
 - [`navigator_map/docs/RACE_LESSONS_RRR26.md`](navigator_map/docs/RACE_LESSONS_RRR26.md) — race-day post-mortem
 - [`yahboom_microros_robot_manual.md`](yahboom_microros_robot_manual.md) — hardware / micro-ROS operator manual
 

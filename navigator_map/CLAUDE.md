@@ -94,6 +94,4 @@ One venue template `config_robot_RRR26.py` — edit SSID/password/agent-IP place
 | `my_robot_map.{pgm,yaml}` | arena occupancy map |
 | `prarams/dwb_nav_params.yaml` | the only Nav2 params file actually loaded |
 | `diag.sh` | live ROS topic/TF health check |
-| `docs/RRR26.pdf` | competition rules |
-| `docs/KNOWLEDGE.md` | tutorial-style write-up of the whole pipeline |
 | `docs/RACE_LESSONS_RRR26.md` | บทเรียนวันแข่งจริง (ผ่านทุกรอบ) + เช็กลิสต์ก่อนสตาร์ท |

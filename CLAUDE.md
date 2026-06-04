@@ -55,7 +55,7 @@ python3 get_waypoint.py             # capture current TF pose into nav_waypoints
 bash diag.sh 2>&1 | tee diag_out.txt  # live /scan //odom /tf health when "Extrapolation Error" appears
 ```
 
-For Nav2-specific architecture (waypoint flow, mission_script gating, Nav2 params, AMCL hard rules, footprint vs `robot_radius` decision, `via:` waypoints, etc.) read **`navigator_map/CLAUDE.md`** — it is the source of truth for the runtime stack. `navigator_map/docs/KNOWLEDGE.md` has a deeper tutorial-style write-up of the whole pipeline; `navigator_map/docs/RRR26.pdf` holds the official rules.
+For Nav2-specific architecture (waypoint flow, mission_script gating, Nav2 params, AMCL hard rules, footprint vs `robot_radius` decision, `via:` waypoints, etc.) read **`navigator_map/CLAUDE.md`** — it is the source of truth for the runtime stack.
 
 ## Robot config (over USB-serial)
 
