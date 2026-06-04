@@ -1,3 +1,23 @@
+"""
+ตัวขับ waypoint mission อัตโนมัติ — process หลักของ Phase 3 (วันแข่ง)
+
+หน้าที่:
+    - อ่าน waypoint จาก nav_waypoints.yaml + รับลำดับที่จะวิ่งจาก stdin (interactive)
+    - ขับหุ่นไปทีละ waypoint ผ่าน Nav2 (clearCostmap → goToPose) พร้อม watchdog
+      "ไม่คืบหน้า >timeout" และ retry เมื่อ FAILED
+    - ที่ waypoint ที่ไม่ใช่ HOME → spawn `mission_script.py <type>` เป็น subprocess
+      (person = ปล่อยกล่อง, tag = อ่าน AprilTag)
+    - exit_pocket(): ถอยออกจากซอก U ของ survivor zone ด้วย Nav2 BackUp (collision-aware)
+      กัน DWB ค้างตอนไป waypoint ถัดไป
+    - emergency_stop(): cancel task + ปล่อย zero /cmd_vel ×5 ก่อนจบ (กันล้อหมุนค้าง)
+
+วิธีรัน:
+    cd navigator_map
+    python3 navigator_script.py            # แล้วพิมพ์ลำดับ เช่น 1,2,3,4,5,6 จากนั้น 0 เพื่อจบ
+    printf '1,2,3,4,5,6\\n0\\n' | python3 navigator_script.py   # non-interactive
+
+หมายเหตุ: ต้องเป็น CWD = navigator_map/ (path สัมพัทธ์), Nav2 ต้อง active ก่อน
+"""
 import rclpy
 from nav2_simple_commander.robot_navigator import BasicNavigator, TaskResult
 from geometry_msgs.msg import PoseStamped, Twist

@@ -1,3 +1,20 @@
+"""
+ภารกิจต่อ 1 waypoint — ถูก spawn เป็น subprocess จาก navigator_script.py
+
+argv:
+    person → ปล่อยกล่องยังชีพทันที (ไม่ใช้กล้อง/ไม่ detect) ผ่าน servo 2-strike
+             เหตุผล: กติกาให้คะแนน "กล่องเข้ากรอบแดง" ไม่บังคับ detect คนก่อน
+             → ตัดความเสี่ยง detect miss + หมุนวน >10s ที่ทำให้กรรมการสั่ง retry
+    tag    → เปิด /vision/detect_enable แล้ว subscribe /vision/latest_at_id
+             warmup ยืนนิ่งสแกนเก็บโหวต → ถ้าโหวตไม่พอ spin หาช้า ๆ
+             ครอบด้วย MISSION_TIMEOUT กันเกินกฎ 10s
+
+ค่าคงที่จูนหลัก (rad/s, วินาที) ประกาศด้านล่าง — ดูคอมเมนต์กำกับแต่ละตัว
+exit code = 0 เสมอ (navigator_script ไม่ได้ใช้ exit code ตัดสินผล — ดู log แทน)
+
+รันเดี่ยวเพื่อ debug:
+    python3 mission_script.py person      # หรือ tag
+"""
 import rclpy
 from rclpy.node import Node
 from std_msgs.msg import Int32, String
