@@ -44,6 +44,7 @@
   <a href="#files">💻 Key Source Files</a> &nbsp;·&nbsp;
   <a href="#docs">📚 Documentation</a> &nbsp;·&nbsp;
   <a href="#ai">🤖 AI in My Workflow</a> &nbsp;·&nbsp;
+  <a href="#team">👥 Team Roles</a> &nbsp;·&nbsp;
   <a href="#credits">🙏 Credits</a> &nbsp;·&nbsp;
   <a href="#learned">💡 What I Learned</a>
 </p>
@@ -213,6 +214,22 @@ The edge was never just *having* the tool — plenty of people have it. It's kno
 AI เป็นส่วนหนึ่งของวิธีที่ผมสร้างงาน และผมใช้มันได้เก่ง — ตลอดโปรเจกต์นี้ผมทำงานคู่กับ **Claude Code** (เอเจนต์ช่วยเขียนโค้ดบนเทอร์มินัลของ Anthropic): ป้อน ROS log วันแข่งจริงให้มันไล่หา localization drift กับ recovery loop ของ Nav2, ขับมันรีวิวและ refactor จน state machine ภารกิจสะอาดขึ้นอย่างเห็นได้ชัด และเขียนเอกสาร bilingual กับไฟล์ความรู้ `CLAUDE.md` ไปด้วยกัน
 
 ข้อได้เปรียบไม่เคยอยู่ที่แค่ "มีเครื่องมือ" — ใคร ๆ ก็มีได้ แต่อยู่ที่ "รู้วิธีรีดงานออกมาจากมัน": ป้อน context ให้ตรง จับตาสิ่งที่มันตอบกลับให้คม และมีวิจารณญาณพอจะดันต่อจนผลออกมาดีจริง ความคล่องนี้ทำให้ผมเร็วขึ้นและโค้ดแน่นขึ้น และมันคือความได้เปรียบแบบเดียวกับที่ผมจะหยิบไปใช้กับทุกอย่างที่สร้างต่อจากนี้
+
+---
+
+<a id="team"></a>
+
+## 👥 Team Roles / บทบาทในทีม
+
+**Team PSPray** competed as a team — this repo focuses on the software, which I owned end-to-end, but the result on race day belonged to everyone below. / **ทีม PSPray** แข่งกันเป็นทีม — repo นี้โฟกัสที่ "ซอฟต์แวร์" ซึ่งผมดูแลคนเดียวทั้งหมด แต่ผลงานวันแข่งเป็นของทุกคนด้านล่างนี้
+
+| Member / สมาชิก | Role / บทบาท | Contribution / สิ่งที่ทำ |
+|---|---|---|
+| **ธนากรณ์ โคตรสมบัติ** *(this portfolio)* | Software / Autonomy | Nav2 tuning, mission & vision logic, waypoint tooling — see [👤 My Role](#role) above |
+| **นิชคุณ สารีโท** | Strategy / Planning | วางกลยุทธ์และแผนการแข่งขัน — ลำดับภารกิจ, แผนเข้าจุดผู้ประสบภัย, ทดสอบระบบ |
+| **วีรวดี สิงห์สุโต** | Hardware | ประกอบและดูแลฮาร์ดแวร์หุ่น — โครงสร้าง, จัดการแบตเตอรี่ |
+
+> 🍴 **Forking this for your own portfolio?** Keep this table as-is (it's accurate for the whole team) and just edit the [👤 My Role](#role) section at the top to describe *your* part. / **จะ fork ไปทำ portfolio ตัวเอง?** เก็บตารางนี้ไว้ตามเดิม (ถูกต้องสำหรับทั้งทีม) แล้วแก้แค่ส่วน [👤 My Role](#role) ด้านบนให้เป็นงานของตัวเอง
 
 ---
 
